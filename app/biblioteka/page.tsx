@@ -153,6 +153,7 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
             <Button type="submit" form="filtry" className="w-full">
               Pokaż wyniki
             </Button>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- pełne przeładowanie czyści pola filtrów */}
             <a href="/biblioteka" className={cn(buttonVariants({ variant: "outline" }), "w-full")}>
               Wyczyść filtry
             </a>
@@ -203,6 +204,7 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
               title="Brak innowacji dla tych filtrów"
               description="Usuń któryś filtr albo wyczyść wszystkie, żeby zobaczyć więcej innowacji."
             >
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- pełne przeładowanie czyści pola filtrów */}
               <a href="/biblioteka" className={buttonVariants({ variant: "secondary" })}>
                 Wyczyść filtry
               </a>

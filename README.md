@@ -12,7 +12,7 @@ Gminy często tworzą od zera rozwiązania, które gdzie indziej już działają
 
 | Moduł ROPS | W aplikacji | Trasa | Stan |
 | --- | --- | --- | --- |
-| I. Matchmaking | Zgłoś problem | `/zglos`, `/zglos-zapotrzebowanie` | Zapis zgłoszenia i analiza AI działają, dopasowania wymagają embeddingów innowacji |
+| I. Matchmaking | Zgłoś problem | `/zglos` | Formularz z mapą gotowy; zapis do bazy, analiza AI i dopasowania w trakcie podpinania |
 | II. Zasobnik wiedzy | Biblioteka, wyzwania, strona innowacji | `/biblioteka`, `/innowacja/[id]`, `/wyzwania` | Działa (Supabase) |
 | III. Kreator pomysłów | Zgłoś rozwiązanie | `/kreator`, `/kreator/[id]` | Widok poglądowy |
 | IV. Tester innowacji | Zapisy do testu, plakat z QR, opinie | `/test/[id]`, `/test/[id]/plakat` | Plakat i opinie działają, zapisy jeszcze bez bazy |
@@ -89,7 +89,7 @@ app/
   biblioteka/               biblioteka innowacji
   innowacja/[id]/           strona innowacji z opiniami
   innowacja/[id]/gmina/     Dostosuj do gminy (AI)
-  zglos/, zglos-zapotrzebowanie/   zgłaszanie problemu
+  zglos/                    zgłaszanie problemu z mapą
   kreator/                  Zgłoś rozwiązanie (kreator pomysłów)
   test/[id]/                zapisy do testu i plakat z QR
   panel/                    Panel ROPS
