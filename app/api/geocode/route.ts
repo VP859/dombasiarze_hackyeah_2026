@@ -11,6 +11,8 @@ type CachedLocation = {
   label: string
   displayName: string
   municipality?: string
+  street: string
+  building: string
 } | null
 
 const resultCache = new Map<string, CachedLocation>()
@@ -38,7 +40,15 @@ async function waitForNominatimSlot() {
 }
 
 export async function POST(request: Request) {
-  let body: { query?: unknown; reverse?: unknown; lat?: unknown; lng?: unknown }
+  let body: {
+    query?: unknown
+    city?: unknown
+    street?: unknown
+    building?: unknown
+    reverse?: unknown
+    lat?: unknown
+    lng?: unknown
+  }
   try {
     body = await request.json()
   } catch {
@@ -46,6 +56,17 @@ export async function POST(request: Request) {
   }
 
   const isReverse = body.reverse === true
+  const isStructuredSearch =
+    !isReverse &&
+    (body.city !== undefined || body.street !== undefined || body.building !== undefined)
+  const city = typeof body.city === "string" ? body.city.trim() : ""
+  const street = typeof body.street === "string" ? body.street.trim() : ""
+  const building = typeof body.building === "string" ? body.building.trim() : ""
+  const searchQuery = isStructuredSearch
+    ? [building, street, city, "Polska"].filter(Boolean).join(", ")
+    : typeof body.query === "string"
+      ? body.query.trim()
+      : ""
   let cacheKey: string
 
   if (isReverse) {
@@ -60,6 +81,18 @@ export async function POST(request: Request) {
       return Response.json({ error: "Nieprawidłowe współrzędne." }, { status: 400 })
     }
     cacheKey = `reverse:${body.lat.toFixed(4)},${body.lng.toFixed(4)}`
+  } else if (isStructuredSearch) {
+    const addressFields = [body.city, body.street, body.building]
+    if (
+      addressFields.some((field) => field !== undefined && typeof field !== "string") ||
+      addressFields.some((field) => typeof field === "string" && field.length > 100)
+    ) {
+      return Response.json({ error: "Nieprawidłowe dane adresu." }, { status: 400 })
+    }
+    if (!city && !street && !building) {
+      return Response.json({ error: "Wpisz miejscowość, ulicę lub numer budynku." }, { status: 400 })
+    }
+    cacheKey = `search:${searchQuery.toLocaleLowerCase("pl-PL")}`
   } else {
     if (typeof body.query !== "string" || !body.query.trim() || body.query.length > 100) {
       return Response.json(
@@ -85,11 +118,11 @@ export async function POST(request: Request) {
           lat: String(body.lat),
           lon: String(body.lng),
           format: "jsonv2",
-          zoom: "10",
+          zoom: "18",
           addressdetails: "1",
         })
       : new URLSearchParams({
-          q: (body.query as string).trim(),
+          q: searchQuery,
           countrycodes: "pl",
           format: "jsonv2",
           limit: "1",
@@ -133,8 +166,14 @@ export async function POST(request: Request) {
         address?.county ??
         match.display_name,
       displayName: match.display_name,
-      // Miasta na prawach gminy (Kraków, Tarnów, Nowy Sącz) nie mają pola municipality — gminą jest miasto.
-      municipality: address?.municipality ?? address?.city,
+      municipality: address?.municipality,
+      street:
+        address?.road ??
+        address?.pedestrian ??
+        address?.residential ??
+        address?.path ??
+        "",
+      building: address?.house_number ?? address?.building ?? "",
     }
     if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng)) {
       throw new Error("Nominatim returned invalid coordinates")

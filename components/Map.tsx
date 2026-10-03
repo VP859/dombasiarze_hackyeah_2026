@@ -6,6 +6,7 @@ import {
   TileLayer,
   Marker,
   Popup,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet"
@@ -14,6 +15,7 @@ import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { Circle } from "react-leaflet"
 import { Label } from "@/components/ui/label"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -26,7 +28,35 @@ type Position = {
 export type OperationLocation = Position & {
   city: string
   municipality: string
+  street: string
+  building: string
   radiusMeters: number
+}
+
+type GeocodedAddress = {
+  label: string
+  displayName: string
+  municipality?: string
+  street: string
+  building: string
+}
+
+async function reverseGeocodePosition(position: Position): Promise<GeocodedAddress> {
+  const response = await fetch("/api/geocode", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reverse: true, ...position }),
+  })
+  const result = (await response.json()) as {
+    location?: GeocodedAddress
+    error?: string
+  }
+
+  if (!response.ok || !result.location) {
+    throw new Error(result.error || "Nie udało się ustalić adresu.")
+  }
+
+  return result.location
 }
 
 const MAX_OPERATION_RADIUS_METERS = 50000
@@ -125,6 +155,8 @@ export default function Map({
   const [cityQuery, setCityQuery] = useState("")
   const [cityResult, setCityResult] = useState("")
   const [cityMunicipality, setCityMunicipality] = useState("")
+  const [cityStreet, setCityStreet] = useState("")
+  const [cityBuilding, setCityBuilding] = useState("")
   const [cityError, setCityError] = useState("")
   const [isSearchingCity, setIsSearchingCity] = useState(false)
   const locationRequestIdRef = useRef(0)
@@ -135,17 +167,48 @@ export default function Map({
   )
 
   useEffect(() => {
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) {
+      setError("Twoja przeglądarka nie obsługuje geolokalizacji.")
+      return
+    }
+
+    const initialRequestId = locationRequestIdRef.current
 
     navigator.geolocation.getCurrentPosition(
       (location) => {
-        setPosition({
+        const currentPosition = {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
-        })
+        }
+        setPosition(currentPosition)
+
+        if (locationRequestIdRef.current !== initialRequestId) return
+
+        const requestId = ++locationRequestIdRef.current
+        setIsSearchingCity(true)
+        void reverseGeocodePosition(currentPosition)
+          .then((address) => {
+            if (requestId !== locationRequestIdRef.current) return
+            setCityQuery(address.label)
+            setCityResult(address.displayName)
+            setCityMunicipality(address.municipality ?? "")
+            setCityStreet(address.street)
+            setCityBuilding(address.building)
+          })
+          .catch(() => {
+            if (requestId === locationRequestIdRef.current) {
+              setCityError("Nie udało się pobrać adresu dla Twojej lokalizacji.")
+            }
+          })
+          .finally(() => {
+            if (requestId === locationRequestIdRef.current) {
+              setIsSearchingCity(false)
+            }
+          })
       },
-      // Brak zgody na lokalizację to normalna sytuacja — komunikat pokazujemy na mapie, bez console.error.
-      () => {
+      (error) => {
+        console.error(error)
+
         setError("Nie udało się pobrać Twojej lokalizacji.")
       },
       {
@@ -169,10 +232,12 @@ export default function Map({
             lng: centerLng,
             city: cityQuery,
             municipality: cityMunicipality,
+            street: cityStreet,
+            building: cityBuilding,
             radiusMeters: radius,
           }
     )
-  }, [onLocationChange, centerLat, centerLng, cityQuery, cityMunicipality, radius])
+  }, [onLocationChange, centerLat, centerLng, cityQuery, cityMunicipality, cityStreet, cityBuilding, radius])
 
   const selectMapLocation = async (nextPosition: Position) => {
     const requestId = ++locationRequestIdRef.current
@@ -180,32 +245,20 @@ export default function Map({
     setCityQuery("")
     setCityResult("")
     setCityMunicipality("")
+    setCityStreet("")
+    setCityBuilding("")
     setCityError("")
     setIsSearchingCity(true)
 
     try {
-      const response = await fetch("/api/geocode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reverse: true, ...nextPosition }),
-      })
-      const result = (await response.json()) as {
-        location?: Position & {
-          label: string
-          displayName: string
-          municipality?: string
-        }
-        error?: string
-      }
-
-      if (!response.ok || !result.location) {
-        throw new Error(result.error || "Nie udało się ustalić miejscowości.")
-      }
+      const address = await reverseGeocodePosition(nextPosition)
       if (requestId !== locationRequestIdRef.current) return
 
-      setCityQuery(result.location.label)
-      setCityResult(result.location.displayName)
-      setCityMunicipality(result.location.municipality ?? "")
+      setCityQuery(address.label)
+      setCityResult(address.displayName)
+      setCityMunicipality(address.municipality ?? "")
+      setCityStreet(address.street)
+      setCityBuilding(address.building)
     } catch (lookupError) {
       if (requestId !== locationRequestIdRef.current) return
       setCityError(
@@ -222,10 +275,12 @@ export default function Map({
 
   const searchCity = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const query = cityQuery.trim()
+    const city = cityQuery.trim()
+    const street = cityStreet.trim()
+    const building = cityBuilding.trim()
 
-    if (!query) {
-      setCityError("Wpisz nazwę miejscowości.")
+    if (!city && !street && !building) {
+      setCityError("Wpisz miejscowość, ulicę lub numer budynku.")
       setCityResult("")
       return
     }
@@ -234,19 +289,23 @@ export default function Map({
     setCityError("")
     setCityResult("")
     setCityMunicipality("")
+    setCityStreet("")
+    setCityBuilding("")
     const requestId = ++locationRequestIdRef.current
 
     try {
       const response = await fetch("/api/geocode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ city, street, building }),
       })
       const result = (await response.json()) as {
         location?: Position & {
           label: string
           displayName: string
           municipality?: string
+          street: string
+          building: string
         }
         error?: string
       }
@@ -260,6 +319,8 @@ export default function Map({
       setCityQuery(result.location.label)
       setCityResult(result.location.displayName)
       setCityMunicipality(result.location.municipality ?? "")
+      setCityStreet(result.location.street)
+      setCityBuilding(result.location.building)
     } catch (searchError) {
       if (requestId !== locationRequestIdRef.current) return
       setCityError(
@@ -330,6 +391,9 @@ export default function Map({
                   },
                 }}
               >
+                <Tooltip permanent direction="top" offset={[0, -10]}>
+                  {[cityBuilding, cityStreet].filter(Boolean).join(", ") || cityQuery || "Wybrany punkt"}
+                </Tooltip>
                 <Popup>Środek wybranego okręgu działania</Popup>
               </Marker>
             )}
@@ -402,54 +466,92 @@ export default function Map({
             className="h-11 w-full accent-primary"
             aria-valuetext={`${radius} metrów`}
           />
-          <p className="text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Kliknij mapę, aby wybrać środek okręgu. Niebieski znacznik możesz
             przeciągnąć w inne miejsce.
           </p>
-          <form onSubmit={searchCity}>
-            <Field className="gap-1">
-              <FieldLabel htmlFor="input-field-miasto">
+          <form onSubmit={searchCity} className="flex flex-col gap-3 mt-[-10px]">
+            <Field>
+              <FieldLabel htmlFor="input-field-miasto" className="text-sm">
                 Miejscowość
               </FieldLabel>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="input-field-miasto"
-                  type="text"
-                  placeholder="Np. Kraków"
-                  value={cityQuery}
-                  onChange={(event) => {
-                    locationRequestIdRef.current += 1
-                    setIsSearchingCity(false)
-                    setCityQuery(event.target.value)
-                    setCityResult("")
-                    setCityMunicipality("")
-                    setCityError("")
-                  }}
-                  maxLength={100}
-                  autoComplete="off"
-                />
-                <Button
-                  type="submit"
-                  variant="default"
-                  className="shrink-0"
-                  disabled={isSearchingCity}
-                >
-                  {isSearchingCity ? "Szukam…" : "Szukaj"}
-                </Button>
-                
-              </div>
-
-              {cityResult && (
-                <p role="status" className="text-muted-foreground">
-                  Wybrano: {cityResult}
-                </p>
-              )}
-              {cityError && (
-                <p role="alert" className="text-destructive">
-                  {cityError}
-                </p>
-              )}
+              <Input
+                id="input-field-miasto"
+                className="h-9 rounded-lg text-xs text-foreground placeholder:text-xs placeholder:text-muted-foreground mt-[-10px]"
+                type="text"
+                placeholder="Np. Kraków"
+                value={cityQuery}
+                onChange={(event) => {
+                  locationRequestIdRef.current += 1
+                  setIsSearchingCity(false)
+                  setCityQuery(event.target.value)
+                  setCityResult("")
+                  setCityMunicipality("")
+                  setCityStreet("")
+                  setCityBuilding("")
+                  setCityError("")
+                }}
+                maxLength={100}
+                autoComplete="off"
+              />
             </Field>
+            <Field>
+              <FieldLabel htmlFor="report-street" className="text-sm mt-[-10px]">Ulica</FieldLabel>
+              <Input
+               className="h-9 rounded-lg text-xs text-foreground placeholder:text-xs placeholder:text-muted-foreground mt-[-10px]"
+                id="report-street"
+                name="street"
+                form="report-form"
+                value={cityStreet}
+                onChange={(event) => {
+                  setCityStreet(event.target.value)
+                  setCityResult("")
+                  setCityError("")
+                }}
+                placeholder={operationCenter ? "Brak danych ulicy w OpenStreetMap" : "Wybierz punkt na mapie"}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="report-building" className="text-sm mt-[-10px]">
+                Numer budynku / punkt orientacyjny
+              </FieldLabel>
+              <Input
+               className="h-9 rounded-lg text-xs text-foreground placeholder:text-xs placeholder:text-muted-foreground mt-[-10px]"
+                id="report-building"
+                name="building"
+                form="report-form"
+                value={cityBuilding}
+                onChange={(event) => {
+                  setCityBuilding(event.target.value)
+                  setCityResult("")
+                  setCityError("")
+                }}
+                placeholder={operationCenter ? "Brak numeru budynku w OpenStreetMap" : "Wybierz punkt na mapie"}
+              />
+            </Field>
+            <Button
+              type="submit"
+              variant="default"
+              size="xs"
+              className="h-9 min-h-9 self-start rounded-lg px-3 py-1 text-xs"
+              disabled={isSearchingCity}
+            >
+              {isSearchingCity ? "Szukam…" : "Szukaj"}
+            </Button>
+            {cityResult && (
+              <div role="status" className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">{cityResult}</p>
+                <p>Miejscowość: {cityQuery || "brak danych"}</p>
+                <p>Gmina: {cityMunicipality || "brak danych w OpenStreetMap"}</p>
+                <p>Ulica: {cityStreet || "brak danych w OpenStreetMap"}</p>
+                <p>Numer budynku: {cityBuilding || "brak danych w OpenStreetMap"}</p>
+              </div>
+            )}
+            {cityError && (
+              <p role="alert" className="text-xs text-destructive">
+                {cityError}
+              </p>
+            )}
           </form>
 
           {selectedCenter && position && (
