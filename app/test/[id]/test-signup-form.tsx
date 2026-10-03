@@ -8,15 +8,15 @@ import { Button } from "@/components/ui/button"
 
 type TestSignupFormProps = {
   innovationId: string
+  innovationName: string
+  innovationDescription: string
 }
 
-const innovation = {
-  name: "Sąsiedzkie odwiedziny u seniorów",
-  description:
-    "Program łączy osoby starsze z przeszkolonymi sąsiadami, którzy regularnie odwiedzają ich w domu. Razem sprawdzimy, jak takie wsparcie działa w gminie.",
-}
-
-export function TestSignupForm({ innovationId }: TestSignupFormProps) {
+export function TestSignupForm({
+  innovationId,
+  innovationName,
+  innovationDescription,
+}: TestSignupFormProps) {
   const signedUp = 12
   const [submitted, setSubmitted] = useState(false)
 
@@ -42,10 +42,10 @@ export function TestSignupForm({ innovationId }: TestSignupFormProps) {
               Nabór do testu
             </p>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              {innovation.name}
+              {innovationName}
             </h1>
             <p className="mt-5 text-lg leading-8 text-stone-600 dark:text-stone-300">
-              {innovation.description}
+              {innovationDescription}
             </p>
             <p
               className="mt-5 font-medium text-emerald-900 dark:text-emerald-300"
@@ -120,7 +120,3 @@ export function TestSignupForm({ innovationId }: TestSignupFormProps) {
     </main>
   )
 }
-
-
-
-
