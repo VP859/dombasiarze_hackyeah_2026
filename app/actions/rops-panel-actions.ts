@@ -1,94 +1,86 @@
-'use server'
+"use server"
 
-import { revalidatePath } from 'next/cache'
-import { getSupabaseAdmin } from '@/lib/supabase'
-import { generateEmbedding } from '@/lib/ai'
-import { NeedStatus } from '@/app/panel/needs-panel'
+import { revalidatePath } from "next/cache"
+import { getSupabaseAdmin } from "@/lib/supabase"
+import type { DraftInnovation } from "../panel/preview-sheet"
 
-export async function publishInnovationAction(id: string) {
-  const supabaseAdmin = getSupabaseAdmin()
+export async function getDraftSolutions(): Promise<DraftInnovation[]> {
+  const supabase = getSupabaseAdmin()
 
-  const { data: solution } = await supabaseAdmin
-    .from('solutions')
-    .select('title, summary, full_description, target_group')
-    .eq('id', id)
-    .single()
-
-  let embedding: number[] | null = null
-  if (solution) {
-    const textToEmbed = `${solution.title}. ${solution.summary}. ${solution.full_description}. Grupa: ${solution.target_group}`
-    try {
-      embedding = await generateEmbedding(textToEmbed)
-    } catch {
-    }
-  }
-
-  const updatePayload: Record<string, unknown> = { status: 'published' }
-  if (embedding) {
-    updatePayload.embedding = embedding
-  }
-
-  const { error } = await supabaseAdmin
-    .from('solutions')
-    .update(updatePayload)
-    .eq('id', id)
-
-  if (error) {
-    throw new Error(`Błąd publikacji: ${error.message}`)
-  }
-
-  revalidatePath('/admin')
-  return { success: true }
-}
-
-export async function updateNeedStatusAction(id: string, newStatus: NeedStatus) {
-  const supabaseAdmin = getSupabaseAdmin()
-
-  const { error } = await supabaseAdmin
-    .from('needs')
-    .update({ status: newStatus })
-    .eq('id', id)
-
-  if (error) {
-    throw new Error(`Błąd aktualizacji statusu: ${error.message}`)
-  }
-
-  revalidatePath('/admin')
-  return { success: true }
-}
-
-export async function answerMessageAction(id: string) {
-  const supabaseAdmin = getSupabaseAdmin()
-
-  const { error } = await supabaseAdmin
-    .from('messages')
-    .update({ answered: true })
-    .eq('id', id)
-
-  if (error) {
-    throw new Error(`Błąd aktualizacji wiadomości: ${error.message}`)
-  }
-
-  revalidatePath('/admin')
-  return { success: true }
-}
-
-export async function createCallAction(title: string, deadline: string) {
-  const supabaseAdmin = getSupabaseAdmin()
-
-  const { error } = await supabaseAdmin
-    .from('calls')
-    .insert({
+  const { data, error } = await supabase
+    .from("solutions")
+    .select(
+      `
+      id,
       title,
-      deadline,
-      applications: 0,
-      open: true,
-    })
+      problem,
+      method,
+      effect,
+      resources,
+      audience,
+      stage,
+      status,
+      organizations (
+        name
+      )
+    `
+    )
+    .in("status", ["draft", "pending", "oczekuje"])
 
   if (error) {
-    throw new Error(`Błąd tworzenia naboru: ${error.message}`)
+    console.error("Błąd pobierania rozwiązań do weryfikacji:", error.message)
+    return []
   }
 
-  revalidatePath('/admin')
-  return { success: true }
+  return (data || []).map((item) => {
+    const typedItem = item as {
+      id: string
+      title: string
+      organizations?: { name?: string | null } | null
+      stage?: string | null
+      audience?: string | null
+      problem?: string | null
+      method?: string | null
+      effect?: string | null
+      resources?: string | null
+    }
+
+    return {
+      id: typedItem.id,
+      title: typedItem.title,
+      organization:
+        typedItem.organizations?.name || "Zgłoszenie indywidualne / NGO",
+      stage: (typedItem.stage || "pomysł") as DraftInnovation["stage"],
+      source: "Zgłoś rozwiązanie",
+      date: new Date().toISOString().split("T")[0],
+      audience: typedItem.audience || "Wszyscy mieszkańcy",
+      problem: typedItem.problem || "Brak opisu problemu",
+      method: typedItem.method || "Brak opisu metody",
+      effects: typedItem.effect
+        ? typedItem.effect.split("\n").filter(Boolean)
+        : ["Brak podanych efektów"],
+      resources: typedItem.resources
+        ? typedItem.resources
+            .split(",")
+            .map((r: string) => r.trim())
+            .filter(Boolean)
+        : ["Brak wymogów"],
+    }
+  })
+}
+
+export async function approveSolutionAction(id: string) {
+  const supabase = getSupabaseAdmin()
+
+  const { error } = await supabase
+    .from("solutions")
+    .update({ status: "published" })
+    .eq("id", id)
+
+  if (error) {
+    console.error("Błąd podczas zatwierdzania innowacji:", error.message)
+    throw new Error(`Nie udało się zatwierdzić innowacji: ${error.message}`)
+  }
+
+  revalidatePath("/panel")
 }

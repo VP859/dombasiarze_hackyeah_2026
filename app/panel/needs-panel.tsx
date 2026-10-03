@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
 import {
   CalendarIcon,
   CircleAlertIcon,
   LightbulbIcon,
   MailIcon,
   UserIcon,
-  Loader2,
 } from "lucide-react"
 
 import { DataTable, type Column } from "@/components/data-table"
@@ -40,8 +39,6 @@ import {
   type Challenge,
   type ReportRole,
 } from "@/seed"
-import { updateNeedStatusAction } from "@/app/actions/rops-panel-actions"
-
 import { formatDate, innowacje } from "./format"
 import { Block, Chips, Facts, SectionTitle } from "./sheet-parts"
 
@@ -81,14 +78,21 @@ export function NeedsPanel({
   challenges: Challenge[]
 }) {
   const [q, setQ] = useState("")
+  const [statusOverrides, setStatusOverrides] = useState<
+    Record<string, NeedStatus>
+  >({})
   const [challenge, setChallenge] = useState<string | null>(null)
   const [audience, setAudience] = useState<string | null>(null)
   const [role, setRole] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
+  const displayedNeeds = needs.map((need) => ({
+    ...need,
+    status: statusOverrides[need.id] ?? need.status,
+  }))
   const challengeName = (id: string) =>
     challenges.find((c) => c.id === id)?.name ?? id
   const query = q.trim().toLocaleLowerCase("pl")
-  const filtered = needs.filter(
+  const filtered = displayedNeeds.filter(
     (n) =>
       (!query ||
         `${n.gmina} ${n.text}`.toLocaleLowerCase("pl").includes(query)) &&
@@ -101,7 +105,7 @@ export function NeedsPanel({
   const byCount = challenges
     .map((c) => ({
       challenge: c,
-      count: needs.filter((n) => n.challenges.includes(c.id)).length,
+      count: displayedNeeds.filter((n) => n.challenges.includes(c.id)).length,
     }))
     .sort(
       (a, b) =>
@@ -170,7 +174,18 @@ export function NeedsPanel({
       header: "Akcje",
       srOnlyHeader: true,
       className: "text-right",
-      cell: (n) => <NeedSheet need={n} challengeName={challengeName} />,
+      cell: (n) => (
+        <NeedSheet
+          need={n}
+          challengeName={challengeName}
+          onStatusChange={(nextStatus) =>
+            setStatusOverrides((current) => ({
+              ...current,
+              [n.id]: nextStatus,
+            }))
+          }
+        />
+      ),
     },
   ]
   const clear = () => {
@@ -265,7 +280,7 @@ export function NeedsPanel({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p role="status" aria-live="polite" className="text-muted-foreground">
-          Pokazano {filtered.length} z {needs.length} zgłoszeń
+          Pokazano {filtered.length} z {displayedNeeds.length} zgłoszeń
         </p>
         {hasFilters && (
           <Button type="button" size="sm" variant="outline" onClick={clear}>
@@ -338,22 +353,12 @@ function FilterSelect({
 function NeedSheet({
   need,
   challengeName,
+  onStatusChange,
 }: {
   need: Need
   challengeName: (id: string) => string
+  onStatusChange: (status: NeedStatus) => void
 }) {
-  const [isPending, startTransition] = useTransition()
-
-  const handleStatusChange = (nextStatus: NeedStatus) => {
-    startTransition(async () => {
-      try {
-        await updateNeedStatusAction(need.id, nextStatus)
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Błąd aktualizacji statusu")
-      }
-    })
-  }
-
   return (
     <Sheet>
       <SheetTrigger
@@ -416,12 +421,9 @@ function NeedSheet({
                   type="button"
                   size="sm"
                   variant={need.status === st ? "default" : "outline"}
-                  disabled={isPending || need.status === st}
-                  onClick={() => handleStatusChange(st)}
+                  disabled={need.status === st}
+                  onClick={() => onStatusChange(st)}
                 >
-                  {isPending && need.status !== st ? (
-                    <Loader2 className="mr-1 size-3 animate-spin" />
-                  ) : null}
                   {st}
                 </Button>
               ))}

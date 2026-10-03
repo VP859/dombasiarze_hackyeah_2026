@@ -8,66 +8,12 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { getChallenges } from "@/seed"
+import { getDraftSolutions } from "@/app/actions/rops-panel-actions"
 
 import { NeedsPanel, type Need } from "./needs-panel"
 import { CallsTable, VerifyTable, type Call } from "./panel-tables"
-import { type DraftInnovation } from "./preview-sheet"
 
 export const metadata: Metadata = { title: "Panel ROPS" }
-
-// Wersja poglądowa: dane przykładowe (fikcyjne), przyciski jeszcze nic nie zapisują.
-// Docelowo: solutions (status draft), needs, messages, calls/applications z Supabase.
-const TO_VERIFY: DraftInnovation[] = [
-  {
-    id: "draft-1",
-    title: "Sąsiedzka wypożyczalnia sprzętu rehabilitacyjnego",
-    organization: "Stowarzyszenie Pomocna Dłoń (fikcyjne)",
-    stage: "pomysł",
-    source: "Zgłoś rozwiązanie",
-    date: "2026-10-03",
-    audience: "Osoby po urazach, seniorzy i ich opiekunowie",
-    problem:
-      "Po wyjściu ze szpitala wiele osób potrzebuje kul, balkonika albo łóżka na kilka tygodni. Zakup jest drogi, a w małych gminach nie ma gdzie tego pożyczyć.",
-    method:
-      "Mieszkańcy oddają nieużywany sprzęt do punktu w bibliotece lub świetlicy. Wolontariusz go sprawdza i wypożycza bezpłatnie na określony czas.",
-    effects: [
-      "Szybszy powrót do sprawności bez kosztów dla rodziny",
-      "Mniej sprzętu zalegającego w piwnicach",
-      "Nowe kontakty między sąsiadami",
-    ],
-    resources: ["Pomieszczenie na sprzęt", "Wolontariusz na 2 dyżury w tygodniu", "Prosty rejestr wypożyczeń"],
-  },
-  {
-    id: "draft-2",
-    title: "Wirtualny asystent seniora w urzędzie gminy",
-    organization: "Fundacja Cyfrowe Jutro (fikcyjna)",
-    stage: "pilotaż",
-    source: "Organizacja",
-    date: "2026-10-02",
-    audience: "Osoby 65+, które załatwiają sprawy w urzędzie",
-    problem:
-      "Seniorzy gubią się w formularzach i e-usługach. Urzędnicy nie mają czasu, żeby każdemu tłumaczyć krok po kroku.",
-    method:
-      "W urzędzie stoi tablet z prostym asystentem, który dużą czcionką i głosem prowadzi przez najczęstsze sprawy. W trudniejszych przypadkach wzywa pracownika.",
-    effects: ["Krótsze kolejki przy okienkach", "Seniorzy częściej załatwiają sprawy samodzielnie"],
-    resources: ["Tablet ze stojakiem", "Licencja na asystenta", "Szkolenie dla 2 urzędników"],
-  },
-  {
-    id: "draft-3",
-    title: "Klub młodych opiekunów",
-    organization: "GOPS w Przykładowie (fikcyjny)",
-    stage: "pomysł",
-    source: "Zgłoś rozwiązanie",
-    date: "2026-10-01",
-    audience: "Nastolatki opiekujące się chorym członkiem rodziny",
-    problem:
-      "Część młodzieży codziennie opiekuje się chorym rodzicem lub rodzeństwem. Brakuje im czasu na naukę i kontaktów z rówieśnikami.",
-    method:
-      "Raz w tygodniu spotkania z psychologiem i rówieśnikami w podobnej sytuacji. W tym czasie wolontariusze zastępują młodych opiekunów w domu.",
-    effects: ["Mniej przeciążenia i samotności", "Lepsze wyniki w nauce"],
-    resources: ["Sala na spotkania", "Psycholog na 2 godziny w tygodniu", "Grupa wolontariuszy"],
-  },
-]
 
 const NEEDS: Need[] = [
   {
@@ -197,11 +143,14 @@ const CALLS: Call[] = [
   { title: "Inkubator pomysłów dla seniorów", deadline: "2026-08-15", applications: 11, open: false },
 ]
 
-export default function Page() {
+export default async function Page() {
+  // Pobieranie na żywo niezatwierdzonych innowacji z bazy Supabase
+  const toVerify = await getDraftSolutions()
+
   const newNeeds = NEEDS.filter((n) => n.status === "Nowe").length
   const unanswered = MESSAGES.filter((m) => !m.answered).length
   const stats = [
-    { label: "Innowacje do weryfikacji", value: TO_VERIFY.length },
+    { label: "Innowacje do weryfikacji", value: toVerify.length },
     { label: "Nowe zgłoszenia potrzeb", value: newNeeds },
     { label: "Wiadomości bez odpowiedzi", value: unanswered },
     { label: "Otwarte nabory", value: CALLS.filter((c) => c.open).length },
@@ -215,10 +164,6 @@ export default function Page() {
         <p className="max-w-2xl text-xl text-muted-foreground">
           Weryfikuj nowe innowacje, odpowiadaj na zgłoszenia i wiadomości, prowadź nabory.
         </p>
-        <Alert>
-          <InfoIcon aria-hidden />
-          <AlertDescription>Wersja poglądowa: dane są przykładowe, a przyciski jeszcze nic nie zapisują.</AlertDescription>
-        </Alert>
       </div>
 
       <dl className="grid grid-cols-2 gap-6 border-y py-8 md:grid-cols-4">
@@ -233,7 +178,7 @@ export default function Page() {
       <Tabs defaultValue="weryfikacja" className="gap-6">
         <TabsList aria-label="Sekcje panelu">
           <TabsTrigger value="weryfikacja">
-            Do weryfikacji <Badge variant="secondary">{TO_VERIFY.length}</Badge>
+            Do weryfikacji <Badge variant="secondary">{toVerify.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="zgloszenia">
             Zgłoszenia <Badge variant="secondary">{newNeeds}</Badge>
@@ -249,7 +194,7 @@ export default function Page() {
           <p className="text-muted-foreground">
             Sprawdź opis i zdecyduj, czy innowacja trafi do biblioteki.
           </p>
-          <VerifyTable items={TO_VERIFY} />
+          <VerifyTable items={toVerify} />
         </TabsContent>
 
         <TabsContent value="zgloszenia" className="flex flex-col gap-4">
