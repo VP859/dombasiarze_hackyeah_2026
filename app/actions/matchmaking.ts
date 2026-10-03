@@ -2,7 +2,7 @@
 
 import { needSchema } from '@/lib/schemas';
 import { generateEmbedding, analyzeNeed } from '@/lib/ai';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import {
   MatchmakingResult,
   SolutionMatch,
@@ -23,6 +23,7 @@ export async function processNeedAction(
     };
 
     const validated = needSchema.parse(rawData);
+    const supabaseAdmin = getSupabaseAdmin();
 
     const queryVector = await generateEmbedding(validated.description);
 
