@@ -13,18 +13,21 @@ function createAiClient() {
 export async function generateEmbedding(text: string): Promise<number[]> {
   const ai = createAiClient()
   const response = await ai.models.embedContent({
-    model: 'gemini-embedding-001', 
+    model: 'gemini-embedding-001',
     contents: text,
+    config: {
+      outputDimensionality: 768, 
+    },
   });
 
-  const values = response.embeddings?.[0]?.values
-  if (!values) {
-    throw new Error('Nie udało się wygenerować wektora embedding.');
+  const embeddingValues = response.embeddings?.[0]?.values
+
+  if (!Array.isArray(embeddingValues)) {
+    throw new Error("Nie udało się wygenerować wektora embedding.")
   }
 
-  return values;
+  return embeddingValues
 }
-
 
 export async function analyzeNeed(
   description: string,
