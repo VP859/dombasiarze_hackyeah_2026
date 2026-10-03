@@ -11,7 +11,7 @@ export default function CreatorPage() {
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8">
       <header className="flex flex-col gap-4">
-        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-primary">
+        <p className="text-sm font-semibold tracking-wider text-primary uppercase">
           Kreator innowacji
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">

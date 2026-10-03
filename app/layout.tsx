@@ -50,7 +50,7 @@ export default function RootLayout({
               Przejdź do treści
             </a>
             {/* Przyklejony tylko przy wysokim oknie — przy dużym powiększeniu nie zasłania treści. */}
-            <header className="top-0 z-40 border-b bg-background/85 backdrop-blur-md [@media(min-height:30rem)]:sticky [@media(prefers-reduced-transparency:reduce)]:bg-background">
+            <header className="top-0 z-40 border-b print:hidden bg-background/85 backdrop-blur-md [@media(min-height:30rem)]:sticky [@media(prefers-reduced-transparency:reduce)]:bg-background">
               <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3">
                 <Link href="/" className="mr-auto font-heading text-2xl font-bold">
                   Podaj Dalej
@@ -64,7 +64,7 @@ export default function RootLayout({
             <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 outline-none">
               {children}
             </main>
-            <footer className="border-t">
+            <footer className="border-t print:hidden">
               <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-muted-foreground">
                 <p>Małopolski Hub Innowacji Społecznych · ROPS Kraków</p>
                 <Link href="/deklaracja-dostepnosci" className="underline underline-offset-4">
