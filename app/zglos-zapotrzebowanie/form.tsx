@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react';
 import { processNeedAction } from '@/app/actions/matchmaking';
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function MatchmakingForm() {
   const [state, formAction, isPending] = useActionState(processNeedAction, null);
@@ -21,13 +23,11 @@ export default function MatchmakingForm() {
             <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
               Opis potrzeby / problemu *
             </label>
-            <textarea
+            <Textarea
               id="description"
               name="description"
-              rows={4}
               required
               placeholder="Opisz wyzwanie w Twojej gminie, np. Brak zajęć aktywizujących dla seniorów w małych sołectwach..."
-              className="w-full rounded-lg border border-slate-300 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
             />
           </div>
 
@@ -36,14 +36,7 @@ export default function MatchmakingForm() {
               <label htmlFor="gmina" className="block text-sm font-medium text-slate-700 mb-1">
                 Gmina *
               </label>
-              <input
-                type="text"
-                id="gmina"
-                name="gmina"
-                required
-                placeholder="np. Skawina"
-                className="w-full rounded-lg border border-slate-300 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              />
+              <Input type="text" id="gmina" name="gmina" required placeholder="np. Skawina" />
             </div>
 
             <div>

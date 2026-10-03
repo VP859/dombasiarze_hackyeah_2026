@@ -70,7 +70,7 @@ export function IdeaDevelopment({ ideaId }: IdeaDevelopmentProps) {
       <div className="flex flex-col gap-4">
         <Link href="/kreator" className="flex w-fit items-center gap-2 underline underline-offset-4">
           <ArrowLeftIcon aria-hidden className="size-5" />
-          Wróć do kreatora
+          Wróć do zgłoszenia rozwiązania
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <StageBadge stage="pomysł" />
