@@ -3,65 +3,130 @@
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { generateGrantApplicationContent, GrantApplicationContent } from '@/lib/ai'
 
-const FALLBACK_CALL = {
-  id: 1,
-  title: 'Małopolskie Innowacje Społeczne 2026 — Edycja Jesień',
-  rules: 'Dofinansowanie do 50 000 PLN na pilotaż rozwiązań wspierających seniorów, przeciwdziałających wykluczeniu cyfrowemu oraz aktywizujących społeczności lokalne w gminach Małopolski.',
-}
+const isValidUuid = (val?: string) =>
+  !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)
 
-export async function generateGrantApplication(
+export async function generateAndSaveGrantApplication(
   ideaId: string,
-  callId: number
-): Promise<GrantApplicationContent> {
+  callId?: string
+): Promise<{ application: GrantApplicationContent; savedId: string }> {
   const supabaseAdmin = getSupabaseAdmin()
 
-  const [{ data: idea, error: ideaError }, { data: call, error: callError }] = await Promise.all([
-    supabaseAdmin.from('ideas').select('*').eq('id', ideaId).maybeSingle(),
-    supabaseAdmin.from('calls').select('*').eq('id', callId).maybeSingle(),
-  ])
+  let targetIdeaId = ideaId
+  let targetIdeaTitle = 'Testowy Pomysł'
+  let targetIdeaEssence = 'Opis testowy'
+  let targetIdeaAudience = 'Mieszkańcy Małopolski'
+  let targetIdeaCanvas = {}
 
-  const targetIdea = idea || {
-    id: ideaId,
-    title: 'Testowy Pomysł Innowacji',
-    essence: 'Rozwiązanie testowe służące weryfikacji działania generatora wniosków.',
-    audience: 'Mieszkańcy gmin wiejskich',
-    canvas: {
-      problem_definition: 'Brak dostępu do nowoczesnych usług społecznych.',
-      target_group_needs: 'Potrzeba wsparcia cyfrowego i integracji.',
-      innovative_aspect: 'Nowe podejście do asystencji lokalnej.',
-      expected_outcomes: 'Wzrost aktywizacji społecznej o 30%.',
-      potential_risks: 'Niska frekwencja w pierwszym etapie.',
-    },
+  if (isValidUuid(ideaId)) {
+    const { data: existingIdea } = await supabaseAdmin
+      .from('ideas')
+      .select('*')
+      .eq('id', ideaId)
+      .maybeSingle()
+
+    if (existingIdea) {
+      targetIdeaTitle = existingIdea.title
+      targetIdeaEssence = existingIdea.essence
+      targetIdeaAudience = existingIdea.audience || targetIdeaAudience
+      targetIdeaCanvas = existingIdea.canvas || {}
+    }
+  } else {
+    const { data: newIdea, error: ideaErr } = await supabaseAdmin
+      .from('ideas')
+      .insert({
+        title: 'Pomysł z Generatora Wniosków',
+        essence: 'Automatycznie utworzony pomysł dla weryfikacji wniosku.',
+        audience: 'Mieszkańcy Małopolski',
+        stage: 'pomysł',
+        canvas: {},
+      })
+      .select()
+      .single()
+
+    if (ideaErr || !newIdea) {
+      throw new Error(`[Błąd tabeli ideas] Nie udało się utworzyć pomysłu: ${ideaErr?.message || ideaErr?.hint}`)
+    }
+    targetIdeaId = newIdea.id
+    targetIdeaTitle = newIdea.title
+    targetIdeaEssence = newIdea.essence
   }
 
-  const targetCall = call || FALLBACK_CALL
+  let targetCallId = callId
+  let targetCallTitle = 'Małopolskie Innowacje Społeczne 2026'
+  let targetCallRules = 'Dofinansowanie do 50 000 PLN na pilotaż rozwiązań społecznych.'
+
+  if (isValidUuid(callId)) {
+    const { data: existingCall } = await supabaseAdmin
+      .from('calls')
+      .select('*')
+      .eq('id', callId)
+      .maybeSingle()
+
+    if (existingCall) {
+      targetCallTitle = existingCall.title
+      targetCallRules = existingCall.rules
+    }
+  } else {
+    const { data: firstCall } = await supabaseAdmin
+      .from('calls')
+      .select('*')
+      .limit(1)
+      .maybeSingle()
+
+    if (firstCall) {
+      targetCallId = firstCall.id
+      targetCallTitle = firstCall.title
+      targetCallRules = firstCall.rules
+    } else {
+      const { data: newCall, error: callErr } = await supabaseAdmin
+        .from('calls')
+        .insert({
+          title: 'Małopolskie Innowacje Społeczne 2026',
+          rules: 'Dofinansowanie do 50 000 PLN na pilotaż rozwiązań społecznych.',
+        })
+        .select()
+        .single()
+
+      if (callErr || !newCall) {
+        throw new Error(`[Błąd tabeli calls] Brak naborów i błąd tworzenia nowego: ${callErr?.message}`)
+      }
+      targetCallId = newCall.id
+      targetCallTitle = newCall.title
+      targetCallRules = newCall.rules
+    }
+  }
 
   const applicationContent = await generateGrantApplicationContent(
     {
-      title: targetIdea.title,
-      essence: targetIdea.essence,
-      audience: targetIdea.audience || 'Mieszkańcy Małopolski',
-      canvas: targetIdea.canvas,
+      title: targetIdeaTitle,
+      essence: targetIdeaEssence,
+      audience: targetIdeaAudience,
+      canvas: targetIdeaCanvas,
     },
     {
-      title: targetCall.title,
-      rules: targetCall.rules,
+      title: targetCallTitle,
+      rules: targetCallRules,
     }
   )
 
-  const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ideaId)
-
-  if (isValidUuid && idea) {
-    const { error: insertError } = await supabaseAdmin.from('applications').insert({
-      idea_id: ideaId,
-      call_id: targetCall.id,
+  const { data: insertedApp, error: insertError } = await supabaseAdmin
+    .from('applications')
+    .insert({
+      idea_id: targetIdeaId,
+      call_id: targetCallId,
       content: applicationContent,
     })
+    .select('id')
+    .single()
 
-    if (insertError) {
-      console.warn('Wniosek został wygenerowany, ale wystąpił ostrzeżenie przy zapisie w bazie:', insertError.message)
-    }
+  if (insertError) {
+    console.error('Błąd zapisu w PostgreSQL:', insertError)
+    throw new Error(`[Błąd bazy Supabase w tabeli applications]: ${insertError.message} (Kod: ${insertError.code})`)
   }
 
-  return applicationContent
+  return {
+    application: applicationContent,
+    savedId: insertedApp.id,
+  }
 }
