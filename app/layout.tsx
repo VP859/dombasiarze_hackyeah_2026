@@ -67,9 +67,14 @@ export default function RootLayout({
             <footer className="border-t print:hidden">
               <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-muted-foreground">
                 <p>Małopolski Hub Innowacji Społecznych · ROPS Kraków</p>
-                <Link href="/deklaracja-dostepnosci" className="underline underline-offset-4">
-                  Deklaracja dostępności
-                </Link>
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                  <Link href="/panel" className="underline underline-offset-4">
+                    Panel ROPS
+                  </Link>
+                  <Link href="/deklaracja-dostepnosci" className="underline underline-offset-4">
+                    Deklaracja dostępności
+                  </Link>
+                </div>
               </div>
             </footer>
           </TooltipProvider>
