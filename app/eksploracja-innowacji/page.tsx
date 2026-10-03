@@ -122,7 +122,7 @@ export default async function InnovationsPage({ searchParams }: PageProps) {
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 line-clamp-2">
                       <Link
-                        href={`/innovations/${item.id}`}
+                        href={`/eksploracja-innowacji/${item.id}`}
                         className="hover:underline focus:outline-none focus:text-blue-900"
                       >
                         {item.title}
@@ -138,7 +138,7 @@ export default async function InnovationsPage({ searchParams }: PageProps) {
                       Odbiorcy: {item.audience || 'Ogólna'}
                     </span>
                     <Link
-                      href={`/innovations/${item.id}`}
+                      href={`/eksploracja-innowacji/${item.id}`}
                       className="inline-flex items-center gap-1 text-sm font-bold text-blue-800 hover:text-blue-900 focus:ring-2 focus:ring-blue-700 rounded px-2 py-1 outline-none"
                       aria-label={`Zobacz szczegóły innowacji: ${item.title}`}
                     >

@@ -46,7 +46,7 @@ export default function AdaptInnovationPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         
         <Link
-          href={`/innovations/${solutionId}`}
+          href={`/eksploracja-innowacji/${solutionId}`}
           className="inline-flex items-center gap-2 text-blue-800 hover:text-blue-900 font-semibold focus:ring-2 focus:ring-blue-700 rounded px-2 py-1 outline-none"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Anuluj i wróć do opisu

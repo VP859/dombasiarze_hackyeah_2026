@@ -27,7 +27,7 @@ export default async function SolutionDetailPage({ params }: PageProps) {
         
         {/* Nav */}
         <Link
-          href="/innovations"
+          href="/eksploracja-innowacji"
           className="inline-flex items-center gap-2 text-blue-800 hover:text-blue-900 font-semibold focus:ring-2 focus:ring-blue-700 rounded px-2 py-1 outline-none"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Powrót do Zasobnika
@@ -62,7 +62,7 @@ export default async function SolutionDetailPage({ params }: PageProps) {
               </p>
             </div>
             <Link
-              href={`/innovations/${solution.id}/adapt`}
+              href={`/eksploracja-innowacji/${solution.id}/adapt`}
               className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold px-5 py-2.5 rounded-lg shadow transition focus:ring-4 focus:ring-indigo-300 outline-none whitespace-nowrap"
             >
               Dostosuj dla Gminy
