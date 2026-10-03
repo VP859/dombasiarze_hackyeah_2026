@@ -1,5 +1,3 @@
-import { Geist_Mono } from "next/font/google"
-
 import type { Metadata } from "next"
 import { Figtree, Inter } from "next/font/google"
 import Link from "next/link"
@@ -27,14 +25,6 @@ export const metadata: Metadata = {
 
 // Przywraca rozmiar tekstu z przycisku A+ przed pierwszym malowaniem (bez mignięcia).
 const textSizeScript = `try{var s=localStorage.getItem("text-size");if(s)document.documentElement.style.fontSize=s}catch(e){}`
-
-// export const metadata: Metadata = {
-//   title: {
-//     default: "Podaj Dalej",
-//     template: "%s | Podaj Dalej",
-//   },
-//   description: "Małopolski Hub Innowacji Społecznych",
-// }
 
 export default function RootLayout({
   children,
@@ -88,4 +78,3 @@ export default function RootLayout({
     </html>
   )
 }
-
