@@ -50,7 +50,7 @@ export default function RootLayout({
               Przejdź do treści
             </a>
             {/* Przyklejony tylko przy wysokim oknie — przy dużym powiększeniu nie zasłania treści. */}
-            <header className="top-0 z-40 border-b bg-background [@media(min-height:30rem)]:sticky">
+            <header className="top-0 z-40 border-b bg-background/85 backdrop-blur-md [@media(min-height:30rem)]:sticky [@media(prefers-reduced-transparency:reduce)]:bg-background">
               <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3">
                 <Link href="/" className="mr-auto font-heading text-2xl font-bold">
                   Podaj Dalej
