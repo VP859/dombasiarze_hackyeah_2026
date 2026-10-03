@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { CircleAlertIcon, SearchIcon, XIcon } from "lucide-react"
 
-import { getReviewsForSolution, getSolutions } from "@/app/actions/solutions"
+import { getReviewsForSolution, getSolutions, type Solution } from "@/app/actions/solutions"
 
 import { EmptyState } from "@/components/empty-state"
 import { InnovationCard } from "@/components/innovation-card"
@@ -19,14 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { STAGES } from "@/seed"
+import { getChallenges, STAGES } from "@/seed"
 
 export const metadata: Metadata = { title: "Biblioteka innowacji" }
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? ""
 
-// Dane z Supabase (server action getSolutions): wyszukiwanie i etap filtruje baza, „Dla kogo” — strona.
-// Filtra wyzwań na razie nie ma: tabela challenges w bazie jest pusta.
+// Dane z Supabase (server action getSolutions): wyszukiwanie i etap filtruje baza, „Dla kogo” i wyzwanie — strona.
 // Filtry to zwykły formularz GET: stan w URL (Select wysyła wartość ukrytym polem `name`).
 // Pasek wyszukiwania to <form id="filtry">, a listy w bocznej kolumnie należą do niego przez atrybut `form`.
 // Zwykłe <a> (nie Link) czyści filtry pełnym przeładowaniem — inaczej pola zachowałyby stare wartości.
@@ -34,6 +33,7 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
   const params = await searchParams
   const filters = {
     q: first(params.q),
+    challenge: first(params.challenge),
     audience: first(params.audience),
     stage: first(params.stage),
   }
@@ -48,7 +48,18 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
   const audiences = [...new Set((solutions ?? []).flatMap((s) => (s.audience ? [s.audience] : [])))].sort(
     (a, b) => a.localeCompare(b, "pl")
   )
-  const results = (solutions ?? []).filter((s) => !filters.audience || s.audience === filters.audience)
+  const challenges = getChallenges()
+  const challenge = challenges.find((c) => c.id === filters.challenge)
+  // ponytail: wyzwanie dopasowane po słowach kluczowych z seed/challenges.json, bo innowacje w bazie
+  // nie mają jeszcze challenge_ids. Gdy dostaną, filtrować po nich w zapytaniu (.contains).
+  const inChallenge = (s: Solution) =>
+    !challenge ||
+    challenge.keywords.some((word) =>
+      [s.title, s.problem, s.method, s.effect, s.audience].join(" ").toLocaleLowerCase("pl").includes(word)
+    )
+  const results = (solutions ?? []).filter(
+    (s) => (!filters.audience || s.audience === filters.audience) && inChallenge(s)
+  )
   // ponytail: jedno zapytanie o oceny na kartę; przy dużej bibliotece pobrać średnie jednym zapytaniem.
   const ratings = await Promise.all(
     results.map((s) =>
@@ -63,6 +74,7 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
 
   const labels: Record<keyof typeof filters, string> = {
     q: filters.q && `„${filters.q}”`,
+    challenge: challenge?.name ?? "",
     audience: filters.audience,
     stage: filters.stage,
   }
@@ -108,6 +120,15 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
           </CardHeader>
           <CardContent>
             <FieldGroup className="gap-5">
+              <FilterSelect
+                id="challenge"
+                label="Wyzwanie"
+                value={challenge ? filters.challenge : ""}
+                items={[
+                  { value: null, label: "Wszystkie wyzwania" },
+                  ...challenges.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
               <FilterSelect
                 id="audience"
                 label="Dla kogo"

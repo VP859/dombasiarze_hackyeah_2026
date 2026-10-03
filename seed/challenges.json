@@ -3,42 +3,94 @@
     "id": "starzenie",
     "name": "Starzenie się",
     "summary": "Coraz więcej osób starszych potrzebuje wsparcia, by dłużej żyć samodzielnie w swoim domu.",
-    "icon": "Hourglass"
+    "icon": "Hourglass",
+    "keywords": [
+      "senior",
+      "starsz",
+      "60+",
+      "70+",
+      "emeryt"
+    ]
   },
   {
     "id": "zdrowie-psychiczne",
     "name": "Zdrowie psychiczne",
     "summary": "Dzieci, młodzież i dorośli czekają długo na pomoc. Brakuje wsparcia blisko domu.",
-    "icon": "Brain"
+    "icon": "Brain",
+    "keywords": [
+      "psychi",
+      "depresj",
+      "kryzys",
+      "stres",
+      "terapi"
+    ]
   },
   {
     "id": "samotnosc",
     "name": "Samotność",
     "summary": "Wiele osób nie ma z kim porozmawiać. Samotność szkodzi zdrowiu tak jak choroba.",
-    "icon": "HeartHandshake"
+    "icon": "HeartHandshake",
+    "keywords": [
+      "samotn",
+      "sąsiedz",
+      "więzi",
+      "integracj",
+      "izolacj"
+    ]
   },
   {
     "id": "wykluczenie-cyfrowe",
     "name": "Wykluczenie cyfrowe",
     "summary": "Część mieszkańców nie umie lub nie może korzystać z internetu, e-urzędu i bankowości.",
-    "icon": "MonitorSmartphone"
+    "icon": "MonitorSmartphone",
+    "keywords": [
+      "cyfrow",
+      "internet",
+      "e-usług",
+      "tablet",
+      "komputer",
+      "smartfon"
+    ]
   },
   {
     "id": "dostep-do-uslug",
     "name": "Dostęp do usług",
     "summary": "W małych miejscowościach daleko do lekarza, urzędu i pomocy społecznej.",
-    "icon": "MapPin"
+    "icon": "MapPin",
+    "keywords": [
+      "dostęp",
+      "usług",
+      "dojazd",
+      "transport",
+      "lekarz",
+      "mobiln",
+      "pomocy społecznej"
+    ]
   },
   {
     "id": "koordynacja",
     "name": "Koordynacja działań",
     "summary": "Instytucje i organizacje działają osobno. Mieszkaniec nie wie, gdzie szukać pomocy.",
-    "icon": "Network"
+    "icon": "Network",
+    "keywords": [
+      "koordyn",
+      "współprac",
+      "partner",
+      "instytucj"
+    ]
   },
   {
     "id": "zmiany-osadnicze",
     "name": "Zmiany osadnicze",
     "summary": "Młodzi wyjeżdżają, wsie się wyludniają, a na przedmieściach brakuje usług.",
-    "icon": "House"
+    "icon": "House",
+    "keywords": [
+      "wiejsk",
+      "sołect",
+      "wyludni",
+      "osiedl",
+      "przedmieś",
+      "migracj"
+    ]
   }
 ]
