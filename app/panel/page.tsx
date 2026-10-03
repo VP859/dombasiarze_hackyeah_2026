@@ -9,110 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { getChallenges } from "@/seed"
 import { getDraftSolutions } from "@/app/actions/rops-panel-actions"
+import { getNeedsFromDb } from "@/app/actions/needs-actions"
 
-import { NeedsPanel, type Need } from "./needs-panel"
+import { NeedsPanel } from "./needs-panel"
 import { CallsTable, VerifyTable, type Call } from "./panel-tables"
 
 export const metadata: Metadata = { title: "Panel ROPS" }
-
-const NEEDS: Need[] = [
-  {
-    id: "n1",
-    gmina: "Skawina",
-    text: "Seniorzy z sołectw nie mają jak dojechać do lekarza.",
-    role: "resident",
-    challenges: ["dostep-do-uslug", "starzenie"],
-    audiences: ["Seniorzy"],
-    status: "Nowe",
-    matches: 2,
-    date: "2026-10-03",
-    email: "anna.k@example.com",
-  },
-  {
-    id: "n2",
-    gmina: "Miechów",
-    text: "Młodzież jest osamotniona, brakuje miejsca spotkań.",
-    role: "ngo",
-    challenges: ["samotnosc", "zdrowie-psychiczne"],
-    audiences: ["Dzieci i młodzież"],
-    status: "Nowe",
-    matches: 3,
-    date: "2026-10-03",
-    email: "fundacja.razem@example.com",
-  },
-  {
-    id: "n3",
-    gmina: "Gorlice",
-    text: "Rodziny nie wiedzą, gdzie szukać pomocy przy opiece nad bliskimi.",
-    role: "official",
-    challenges: ["koordynacja"],
-    audiences: ["Rodziny"],
-    status: "W toku",
-    matches: 1,
-    date: "2026-10-02",
-    email: "ops.gorlice@example.com",
-  },
-  {
-    id: "n4",
-    gmina: "Limanowa",
-    text: "Osoby starsze nie radzą sobie z e-usługami w urzędzie.",
-    role: "resident",
-    challenges: ["wykluczenie-cyfrowe", "starzenie"],
-    audiences: ["Seniorzy"],
-    status: "W toku",
-    matches: 4,
-    date: "2026-10-02",
-    email: "jan.m@example.com",
-  },
-  {
-    id: "n5",
-    gmina: "Bochnia",
-    text: "Sąsiedzi chcą pomagać, ale nikt tego nie koordynuje.",
-    role: "ngo",
-    challenges: ["koordynacja", "samotnosc"],
-    audiences: ["Wszyscy mieszkańcy"],
-    status: "Zamknięte",
-    matches: 2,
-    date: "2026-09-30",
-    email: "sasiedzi.bochnia@example.com",
-  },
-  {
-    id: "n6",
-    gmina: "Nowy Targ",
-    text: "Osoby z niepełnosprawnościami nie mają transportu na zajęcia.",
-    role: "resident",
-    challenges: ["dostep-do-uslug"],
-    audiences: ["Osoby z niepełnosprawnościami"],
-    status: "Nowe",
-    matches: 1,
-    date: "2026-10-01",
-    email: "ewa.n@example.com",
-  },
-  {
-    id: "n7",
-    gmina: "Dąbrowa Tarnowska",
-    text: "Młodzi wyjeżdżają, w sołectwach zostają głównie seniorzy.",
-    role: "official",
-    challenges: ["zmiany-osadnicze", "starzenie"],
-    audiences: ["Seniorzy", "Wszyscy mieszkańcy"],
-    status: "Nowe",
-    matches: 2,
-    date: "2026-10-01",
-    email: "urzad.dabrowa@example.com",
-  },
-  {
-    id: "n8",
-    gmina: "Wieliczka",
-    text: "Nastolatki czekają miesiącami na wizytę u psychologa.",
-    role: "resident",
-    challenges: ["zdrowie-psychiczne"],
-    audiences: ["Dzieci i młodzież"],
-    status: "W toku",
-    matches: 3,
-    date: "2026-09-29",
-    email: "rodzic.w@example.com",
-  },
-]
 
 const MESSAGES = [
   {
@@ -144,10 +46,11 @@ const CALLS: Call[] = [
 ]
 
 export default async function Page() {
-  // Pobieranie na żywo niezatwierdzonych innowacji z bazy Supabase
+  // Pobieramy TYLKO realne rekordy z bazy Supabase
   const toVerify = await getDraftSolutions()
+  const realNeeds = await getNeedsFromDb()
 
-  const newNeeds = NEEDS.filter((n) => n.status === "Nowe").length
+  const newNeeds = realNeeds.filter((n) => n.status === "Nowe").length
   const unanswered = MESSAGES.filter((m) => !m.answered).length
   const stats = [
     { label: "Innowacje do weryfikacji", value: toVerify.length },
@@ -202,7 +105,7 @@ export default async function Page() {
           <p className="text-muted-foreground">
             Problemy zgłoszone przez mieszkańców, organizacje i gminy. Filtruj je po wyzwaniu, grupie i statusie.
           </p>
-          <NeedsPanel needs={NEEDS} challenges={getChallenges()} />
+          <NeedsPanel needs={realNeeds} challenges={getChallenges()} />
         </TabsContent>
 
         <TabsContent value="wiadomosci" className="flex flex-col gap-4">
