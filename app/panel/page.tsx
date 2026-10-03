@@ -1,15 +1,17 @@
 import type { Metadata } from "next"
 import { InfoIcon, PlusIcon } from "lucide-react"
 
-import { StageBadge } from "@/components/stage-badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import { PreviewSheet, type DraftInnovation } from "./preview-sheet"
+import { getChallenges } from "@/seed"
+
+import { NeedsPanel, type Need } from "./needs-panel"
+import { CallsTable, VerifyTable, type Call } from "./panel-tables"
+import { type DraftInnovation } from "./preview-sheet"
 
 export const metadata: Metadata = { title: "Panel ROPS" }
 
@@ -20,8 +22,8 @@ const TO_VERIFY: DraftInnovation[] = [
     title: "Sąsiedzka wypożyczalnia sprzętu rehabilitacyjnego",
     organization: "Stowarzyszenie Pomocna Dłoń (fikcyjne)",
     stage: "pomysł",
-    source: "Kreator",
-    date: "3 paź 2026",
+    source: "Zgłoś rozwiązanie",
+    date: "2026-10-03",
     audience: "Osoby po urazach, seniorzy i ich opiekunowie",
     problem:
       "Po wyjściu ze szpitala wiele osób potrzebuje kul, balkonika albo łóżka na kilka tygodni. Zakup jest drogi, a w małych gminach nie ma gdzie tego pożyczyć.",
@@ -39,7 +41,7 @@ const TO_VERIFY: DraftInnovation[] = [
     organization: "Fundacja Cyfrowe Jutro (fikcyjna)",
     stage: "pilotaż",
     source: "Organizacja",
-    date: "2 paź 2026",
+    date: "2026-10-02",
     audience: "Osoby 65+, które załatwiają sprawy w urzędzie",
     problem:
       "Seniorzy gubią się w formularzach i e-usługach. Urzędnicy nie mają czasu, żeby każdemu tłumaczyć krok po kroku.",
@@ -52,8 +54,8 @@ const TO_VERIFY: DraftInnovation[] = [
     title: "Klub młodych opiekunów",
     organization: "GOPS w Przykładowie (fikcyjny)",
     stage: "pomysł",
-    source: "Kreator",
-    date: "1 paź 2026",
+    source: "Zgłoś rozwiązanie",
+    date: "2026-10-01",
     audience: "Nastolatki opiekujące się chorym członkiem rodziny",
     problem:
       "Część młodzieży codziennie opiekuje się chorym rodzicem lub rodzeństwem. Brakuje im czasu na naukę i kontaktów z rówieśnikami.",
@@ -64,12 +66,103 @@ const TO_VERIFY: DraftInnovation[] = [
   },
 ]
 
-const NEEDS = [
-  { gmina: "Skawina", text: "Seniorzy z sołectw nie mają jak dojechać do lekarza.", role: "Mieszkaniec", matches: 2, status: "Nowe" },
-  { gmina: "Miechów", text: "Młodzież jest osamotniona, brakuje miejsca spotkań.", role: "Organizacja", matches: 3, status: "Nowe" },
-  { gmina: "Gorlice", text: "Rodziny nie wiedzą, gdzie szukać pomocy przy opiece nad bliskimi.", role: "Samorząd", matches: 1, status: "W toku" },
-  { gmina: "Limanowa", text: "Osoby starsze nie radzą sobie z e-usługami w urzędzie.", role: "Mieszkaniec", matches: 4, status: "W toku" },
-  { gmina: "Bochnia", text: "Sąsiedzi chcą pomagać, ale nikt tego nie koordynuje.", role: "Organizacja", matches: 2, status: "Zamknięte" },
+const NEEDS: Need[] = [
+  {
+    id: "n1",
+    gmina: "Skawina",
+    text: "Seniorzy z sołectw nie mają jak dojechać do lekarza.",
+    role: "resident",
+    challenges: ["dostep-do-uslug", "starzenie"],
+    audiences: ["Seniorzy"],
+    status: "Nowe",
+    matches: 2,
+    date: "2026-10-03",
+    email: "anna.k@example.com",
+  },
+  {
+    id: "n2",
+    gmina: "Miechów",
+    text: "Młodzież jest osamotniona, brakuje miejsca spotkań.",
+    role: "ngo",
+    challenges: ["samotnosc", "zdrowie-psychiczne"],
+    audiences: ["Dzieci i młodzież"],
+    status: "Nowe",
+    matches: 3,
+    date: "2026-10-03",
+    email: "fundacja.razem@example.com",
+  },
+  {
+    id: "n3",
+    gmina: "Gorlice",
+    text: "Rodziny nie wiedzą, gdzie szukać pomocy przy opiece nad bliskimi.",
+    role: "official",
+    challenges: ["koordynacja"],
+    audiences: ["Rodziny"],
+    status: "W toku",
+    matches: 1,
+    date: "2026-10-02",
+    email: "ops.gorlice@example.com",
+  },
+  {
+    id: "n4",
+    gmina: "Limanowa",
+    text: "Osoby starsze nie radzą sobie z e-usługami w urzędzie.",
+    role: "resident",
+    challenges: ["wykluczenie-cyfrowe", "starzenie"],
+    audiences: ["Seniorzy"],
+    status: "W toku",
+    matches: 4,
+    date: "2026-10-02",
+    email: "jan.m@example.com",
+  },
+  {
+    id: "n5",
+    gmina: "Bochnia",
+    text: "Sąsiedzi chcą pomagać, ale nikt tego nie koordynuje.",
+    role: "ngo",
+    challenges: ["koordynacja", "samotnosc"],
+    audiences: ["Wszyscy mieszkańcy"],
+    status: "Zamknięte",
+    matches: 2,
+    date: "2026-09-30",
+    email: "sasiedzi.bochnia@example.com",
+  },
+  {
+    id: "n6",
+    gmina: "Nowy Targ",
+    text: "Osoby z niepełnosprawnościami nie mają transportu na zajęcia.",
+    role: "resident",
+    challenges: ["dostep-do-uslug"],
+    audiences: ["Osoby z niepełnosprawnościami"],
+    status: "Nowe",
+    matches: 1,
+    date: "2026-10-01",
+    email: "ewa.n@example.com",
+  },
+  {
+    id: "n7",
+    gmina: "Dąbrowa Tarnowska",
+    text: "Młodzi wyjeżdżają, w sołectwach zostają głównie seniorzy.",
+    role: "official",
+    challenges: ["zmiany-osadnicze", "starzenie"],
+    audiences: ["Seniorzy", "Wszyscy mieszkańcy"],
+    status: "Nowe",
+    matches: 2,
+    date: "2026-10-01",
+    email: "urzad.dabrowa@example.com",
+  },
+  {
+    id: "n8",
+    gmina: "Wieliczka",
+    text: "Nastolatki czekają miesiącami na wizytę u psychologa.",
+    role: "resident",
+    challenges: ["zdrowie-psychiczne"],
+    audiences: ["Dzieci i młodzież"],
+    status: "W toku",
+    matches: 3,
+    date: "2026-09-29",
+    email: "rodzic.w@example.com",
+  },
 ]
 
 const MESSAGES = [
@@ -96,16 +189,10 @@ const MESSAGES = [
   },
 ]
 
-const CALLS = [
-  { title: "Małopolskie Innowacje Społeczne 2026", deadline: "30 lis 2026", applications: 4, open: true },
-  { title: "Inkubator pomysłów dla seniorów", deadline: "15 sie 2026", applications: 11, open: false },
+const CALLS: Call[] = [
+  { title: "Małopolskie Innowacje Społeczne 2026", deadline: "2026-11-30", applications: 4, open: true },
+  { title: "Inkubator pomysłów dla seniorów", deadline: "2026-08-15", applications: 11, open: false },
 ]
-
-const NEED_STATUS = { Nowe: "default", "W toku": "secondary", Zamknięte: "outline" } as const
-
-const INNOWACJE = { one: "innowacja", few: "innowacje", many: "innowacji", other: "innowacji" }
-const innowacje = (n: number) =>
-  `${n} ${INNOWACJE[new Intl.PluralRules("pl").select(n) as keyof typeof INNOWACJE]}`
 
 export default function Page() {
   const newNeeds = NEEDS.filter((n) => n.status === "Nowe").length
@@ -159,84 +246,15 @@ export default function Page() {
           <p className="text-muted-foreground">
             Sprawdź opis i zdecyduj, czy innowacja trafi do biblioteki.
           </p>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Innowacja</TableHead>
-                <TableHead>Etap</TableHead>
-                <TableHead className="hidden md:table-cell">Źródło</TableHead>
-                <TableHead className="hidden md:table-cell">Dodano</TableHead>
-                <TableHead>
-                  <span className="sr-only">Akcje</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {TO_VERIFY.map((item) => (
-                <TableRow key={item.title}>
-                  <TableCell className="whitespace-normal">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium">{item.title}</span>
-                      <span className="text-muted-foreground">{item.organization}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <StageBadge stage={item.stage} />
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">{item.source}</TableCell>
-                  <TableCell className="hidden md:table-cell">{item.date}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <PreviewSheet item={item} />
-                      <Button type="button" size="sm">
-                        Opublikuj<span className="sr-only">: {item.title}</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <VerifyTable items={TO_VERIFY} />
         </TabsContent>
 
         <TabsContent value="zgloszenia" className="flex flex-col gap-4">
           <h2 className="text-2xl font-bold">Zgłoszenia potrzeb</h2>
-          <p className="text-muted-foreground">Problemy zgłoszone przez mieszkańców, organizacje i gminy.</p>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Gmina i problem</TableHead>
-                <TableHead className="hidden md:table-cell">Kto zgłosił</TableHead>
-                <TableHead className="hidden md:table-cell">Dopasowania</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>
-                  <span className="sr-only">Akcje</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {NEEDS.map((need) => (
-                <TableRow key={need.text}>
-                  <TableCell className="whitespace-normal">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium">{need.gmina}</span>
-                      <span className="text-muted-foreground">{need.text}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">{need.role}</TableCell>
-                  <TableCell className="hidden md:table-cell">{innowacje(need.matches)}</TableCell>
-                  <TableCell>
-                    <Badge variant={NEED_STATUS[need.status as keyof typeof NEED_STATUS]}>{need.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button type="button" size="sm" variant="outline">
-                      Szczegóły<span className="sr-only">: {need.gmina}</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <p className="text-muted-foreground">
+            Problemy zgłoszone przez mieszkańców, organizacje i gminy. Filtruj je po wyzwaniu, grupie i statusie.
+          </p>
+          <NeedsPanel needs={NEEDS} challenges={getChallenges()} />
         </TabsContent>
 
         <TabsContent value="wiadomosci" className="flex flex-col gap-4">
@@ -282,36 +300,7 @@ export default function Page() {
               Dodaj nabór
             </Button>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nabór</TableHead>
-                <TableHead className="hidden md:table-cell">Termin</TableHead>
-                <TableHead className="hidden md:table-cell">Wnioski</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>
-                  <span className="sr-only">Akcje</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {CALLS.map((call) => (
-                <TableRow key={call.title}>
-                  <TableCell className="font-medium whitespace-normal">{call.title}</TableCell>
-                  <TableCell className="hidden md:table-cell">do {call.deadline}</TableCell>
-                  <TableCell className="hidden md:table-cell">{call.applications}</TableCell>
-                  <TableCell>
-                    <Badge variant={call.open ? "default" : "outline"}>{call.open ? "Otwarty" : "Zamknięty"}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button type="button" size="sm" variant="outline">
-                      Wnioski<span className="sr-only">: {call.title}</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <CallsTable calls={CALLS} />
         </TabsContent>
       </Tabs>
     </div>

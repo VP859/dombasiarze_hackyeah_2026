@@ -3,7 +3,7 @@
 import { CreatorForm } from "./creator-form"
 
 export const metadata: Metadata = {
-  title: "Nowy pomysł",
+  title: "Zgłoś rozwiązanie",
   description: "Opisz swój pomysł na innowację społeczną.",
 }
 
@@ -12,7 +12,7 @@ export default function CreatorPage() {
     <article className="mx-auto flex max-w-3xl flex-col gap-8">
       <header className="flex flex-col gap-4">
         <p className="text-sm font-semibold tracking-wider text-primary uppercase">
-          Kreator innowacji
+          Zgłoś rozwiązanie
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">
           Opisz swój pomysł

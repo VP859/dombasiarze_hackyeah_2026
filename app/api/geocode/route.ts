@@ -133,7 +133,8 @@ export async function POST(request: Request) {
         address?.county ??
         match.display_name,
       displayName: match.display_name,
-      municipality: address?.municipality,
+      // Miasta na prawach gminy (Kraków, Tarnów, Nowy Sącz) nie mają pola municipality — gminą jest miasto.
+      municipality: address?.municipality ?? address?.city,
     }
     if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng)) {
       throw new Error("Nominatim returned invalid coordinates")
