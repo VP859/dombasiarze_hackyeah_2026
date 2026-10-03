@@ -1,180 +1,187 @@
-'use client'
+"use client"
 
-import React, { useState } from 'react'
-import { generateAndSaveGrantApplication } from '../app/actions/grant-generator'
-import { GrantApplicationContent } from '@/lib/ai'
-import { Loader2, Sparkles, FileText, Calendar, DollarSign, CheckCircle2 } from 'lucide-react'
+import { type FormEvent, useState } from "react"
+import { CheckIcon, CircleAlertIcon, Loader2Icon, SparklesIcon } from "lucide-react"
 
-interface Call {
-  id: number
-  title: string
-  rules: string
-  open_until?: string
-}
+import { generateAndSaveGrantApplication } from "@/app/actions/grant-generator"
+import { formatDate } from "@/app/panel/format"
+import type { GrantApplicationContent } from "@/lib/ai"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
-interface GrantGeneratorFormProps {
-  ideaId: string
-  availableCalls: Call[]
-}
+export type Call = { id: string; title: string; deadline: string | null }
 
-export function GrantGeneratorForm({ ideaId, availableCalls }: GrantGeneratorFormProps) {
-  const [selectedCallId, setSelectedCallId] = useState<string>(String(availableCalls[0]?.id ?? 1))
+const pln = (value: number) => `${value.toLocaleString("pl-PL")} zł`
+
+export function GrantGeneratorForm({ ideaId, availableCalls }: { ideaId: string; availableCalls: Call[] }) {
   const [loading, setLoading] = useState(false)
   const [application, setApplication] = useState<GrantApplicationContent | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const items = availableCalls.map((call) => ({
+    value: call.id,
+    label: call.deadline ? `${call.title} (do ${formatDate(call.deadline)})` : call.title,
+  }))
+
+  const handleGenerate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const callId = String(new FormData(event.currentTarget).get("callId") ?? "")
     setLoading(true)
     setError(null)
 
     try {
-      const result = await generateAndSaveGrantApplication(ideaId, selectedCallId)
+      const result = await generateAndSaveGrantApplication(ideaId, callId)
       setApplication(result.application)
-    } catch (err: unknown) {
+    } catch (err) {
       console.error(err)
-      setError((err as Error).message || 'Nie udało się wygenerować wniosku grantowego.')
+      setError("Nie udało się przygotować wniosku. Spróbuj ponownie za chwilę.")
     } finally {
       setLoading(false)
     }
   }
 
-  const totalBudget = application?.budget_breakdown?.reduce(
-    (sum, item) => sum + item.estimated_cost_pln,
-    0
-  ) || 0
   return (
-    <div className="space-y-8">
-      <form onSubmit={handleGenerate} className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <div>
-          <label htmlFor="callSelect" className="block text-sm font-semibold mb-2">
-            Wybierz otwarty nabór grantowy (Call):
-          </label>
-          <select
-            id="callSelect"
-            value={selectedCallId}
-            onChange={(e) => setSelectedCallId(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
-          >
-            {availableCalls.map((call) => (
-              <option key={call.id} value={call.id}>
-                {call.title} {call.open_until ? `(do ${call.open_until})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+    <>
+      <Card>
+        <CardContent>
+          <form onSubmit={handleGenerate} className="flex flex-col gap-8">
+            <Field>
+              <FieldLabel htmlFor="callId">Nabór</FieldLabel>
+              <Select id="callId" name="callId" items={items} defaultValue={items[0]?.value}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {items.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <FieldDescription>Asystent dopasuje wniosek do zasad wybranego naboru.</FieldDescription>
+            </Field>
+            <Button type="submit" size="lg" disabled={loading} className="w-full sm:w-auto sm:self-start">
+              {loading ? (
+                <Loader2Icon data-icon="inline-start" aria-hidden className="motion-safe:animate-spin" />
+              ) : (
+                <SparklesIcon data-icon="inline-start" aria-hidden />
+              )}
+              {loading ? "Przygotowuję wniosek…" : "Przygotuj szkic wniosku"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-        {error && (
-          <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
-            {error}
-          </div>
+      <div aria-live="polite" className="flex flex-col gap-6">
+        {loading && (
+          <p className="text-muted-foreground">Asystent pisze szkic wniosku. To może potrwać do minuty.</p>
         )}
+        {!loading && error && (
+          <Alert variant="destructive">
+            <CircleAlertIcon aria-hidden />
+            <AlertTitle>Coś poszło nie tak</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {!loading && application && <Application application={application} />}
+      </div>
+    </>
+  )
+}
 
-        <button
-          type="submit"
-          disabled={loading || availableCalls.length === 0}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="animate-spin h-5 w-5" />
-              Generowanie wniosku...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-5 w-5" />
-              Generuj Wniosek Grantowy
-            </>
-          )}
-        </button>
-      </form>
+function Application({ application }: { application: GrantApplicationContent }) {
+  const total = application.budget_breakdown.reduce((sum, item) => sum + item.estimated_cost_pln, 0)
 
-      {application && (
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg space-y-8">
-          <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-2 py-1 rounded">
-                Szkic Wniosku Wygenerowany
-              </span>
-              <h2 className="text-2xl font-bold mt-2">{application.project_title}</h2>
-            </div>
-            <CheckCircle2 className="h-8 w-8 text-green-500" />
-          </div>
+  return (
+    <Card>
+      <CardHeader>
+        <p className="text-sm font-semibold tracking-wider text-primary uppercase">Szkic wniosku</p>
+        <CardTitle>
+          <h2 className="text-2xl">{application.project_title}</h2>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-8">
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xl font-semibold">Streszczenie</h3>
+          <p className="max-w-[65ch]">{application.executive_summary}</p>
+        </section>
 
-          <section>
-            <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200 mb-2">
-              <FileText className="h-5 w-5 text-blue-500" /> Streszczenie Projektu
-            </h3>
-            <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-              {application.executive_summary}
-            </p>
-          </section>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xl font-semibold">Zgodność z naborem</h3>
+          <p className="max-w-[65ch]">{application.problem_alignment}</p>
+        </section>
 
-          <section>
-            <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200 mb-2">
-              Spójność z Regulaminem Naboru
-            </h3>
-            <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-              {application.problem_alignment}
-            </p>
-          </section>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xl font-semibold">Harmonogram</h3>
+          <ol className="flex list-decimal flex-col gap-3 pl-6 marker:font-semibold">
+            {application.detailed_schedule.map((step) => (
+              <li key={step} className="pl-1">
+                {step}
+              </li>
+            ))}
+          </ol>
+        </section>
 
-          <section>
-            <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200 mb-3">
-              <Calendar className="h-5 w-5 text-blue-500" /> Harmonogram Działań
-            </h3>
-            <ul className="space-y-2">
-              {application.detailed_schedule.map((step, idx) => (
-                <li key={idx} className="flex gap-3 text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-lg border">
-                  <span className="font-bold text-blue-600 dark:text-blue-400">{idx + 1}.</span>
-                  {step}
-                </li>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xl font-semibold">Kosztorys</h3>
+          <Table>
+            <TableCaption className="sr-only">Szacunkowe koszty projektu w złotych</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Wydatek</TableHead>
+                <TableHead className="text-right">Koszt</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {application.budget_breakdown.map((item) => (
+                <TableRow key={item.item}>
+                  <TableCell className="whitespace-normal">{item.item}</TableCell>
+                  <TableCell className="text-right tabular-nums">{pln(item.estimated_cost_pln)}</TableCell>
+                </TableRow>
               ))}
-            </ul>
-          </section>
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell className="font-semibold">Razem</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">{pln(total)}</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </section>
 
-          <section>
-            <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200 mb-3">
-              <DollarSign className="h-5 w-5 text-blue-500" /> Kosztorys Projektu
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse border dark:border-slate-800">
-                <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-800">
-                    <th className="p-3 border dark:border-slate-800">Pozycja / Kategoria</th>
-                    <th className="p-3 border dark:border-slate-800 text-right">Koszt Szacunkowy</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {application.budget_breakdown.map((item, idx) => (
-                    <tr key={idx} className="border-b dark:border-slate-800">
-                      <td className="p-3 border dark:border-slate-800">{item.item}</td>
-                      <td className="p-3 border dark:border-slate-800 text-right font-mono">
-                        {item.estimated_cost_pln.toLocaleString('pl-PL')} PLN
-                      </td>
-                    </tr>
-                  ))}
-                  <tr className="bg-slate-50 dark:bg-slate-800/80 font-bold">
-                    <td className="p-3 border dark:border-slate-800">SUMA RAZEM:</td>
-                    <td className="p-3 border dark:border-slate-800 text-right font-mono text-blue-600 dark:text-blue-400">
-                      {totalBudget.toLocaleString('pl-PL')} PLN
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xl font-semibold">Co dalej po grancie</h3>
+          <p className="max-w-[65ch]">{application.sustainability_plan}</p>
+        </section>
 
-          <section>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">
-              Trwałość i Skalowalność
-            </h3>
-            <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-              {application.sustainability_plan}
-            </p>
-          </section>
-        </div>
-      )}
-    </div>
+        <p className="flex gap-3 text-muted-foreground">
+          <CheckIcon aria-hidden className="mt-1 size-5 shrink-0 text-primary" />
+          Szkic zapisaliśmy. Pracownicy ROPS zobaczą go razem z Twoim pomysłem.
+        </p>
+      </CardContent>
+    </Card>
   )
 }

@@ -10,6 +10,8 @@ export type Challenge = {
   name: string
   summary: string
   icon: string
+  /** Początki słów (małe litery) — po nich biblioteka dopasowuje innowacje do wyzwania. */
+  keywords: string[]
 }
 
 export type Solution = {
