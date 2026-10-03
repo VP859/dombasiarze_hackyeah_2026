@@ -101,7 +101,7 @@ export async function generateRopsCanvas(
   audience: string
 ): Promise<CanvasData> {
   const ai = createAiClient()
-  const prompt = `Przekształć poniższy pomysł w ustrukturyzowaną Canwę Innowacji ROPS:
+  const prompt = `Przekształć poniższy pomysł w ustrukturyzowaną Kanwę Innowacji ROPS:
 
 Tytuł: ${title}
 Istota pomysłu: ${essence}

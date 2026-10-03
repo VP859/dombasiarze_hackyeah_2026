@@ -2,36 +2,8 @@
 
 import React, { useState } from "react"
 import { generateRopsCanvas, CanvasData } from "@/lib/ai"
-
-// Local fallback types for the deduplication and save actions until the server modules are available.
-type SimilarSolution = {
-  id: string
-  title: string
-  similarity: number
-}
-
-type SaveIdeaPayload = {
-  title: string
-  essence: string
-  audience: string
-  stage: "pomysł" | "pilotaż" | "sprawdzona"
-  canvas: CanvasData | null
-  authorEmail: string
-}
-
-async function checkIdeaDuplicates(
-  _title: string,
-  _essence: string
-): Promise<{ score: number; similarSolutions: SimilarSolution[] }> {
-  return { score: 0, similarSolutions: [] }
-}
-
-async function saveIdeaAction(
-  _payload: SaveIdeaPayload
-): Promise<{ id: string }> {
-  return { id: "local-demo-idea-id" }
-}
-
+import { checkIdeaDuplicates, SimilarSolution } from "@/app/actions/deduplication"
+import { saveIdeaAction } from "@/app/actions/ideas"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -45,7 +17,6 @@ export function IdeaWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [loading, setLoading] = useState(false)
 
-  // Stan Formularza
   const [title, setTitle] = useState("")
   const [essence, setEssence] = useState("")
   const [audience, setAudience] = useState("")
@@ -54,7 +25,6 @@ export function IdeaWizard() {
   )
   const [authorEmail, setAuthorEmail] = useState("")
 
-  // Wyniki AI
   const [duplicateCheck, setDuplicateCheck] = useState<{
     score: number
     similarSolutions: SimilarSolution[]
@@ -90,6 +60,7 @@ export function IdeaWizard() {
     setLoading(true)
 
     try {
+      // Wywołanie akcji serwerowej zapisującej pomysł bezpośrednio do Supabase
       const data = await saveIdeaAction({
         title,
         essence,
@@ -99,9 +70,14 @@ export function IdeaWizard() {
         authorEmail,
       })
 
+      if (!data?.id) {
+        throw new Error("Serwer nie zwrócił identyfikatora UUID zapisanego pomysłu.")
+      }
+
       setSavedIdeaId(data.id)
       setStep(3)
     } catch (err: unknown) {
+      console.error("Błąd zapisu pomysłu:", err)
       alert("Błąd zapisu do bazy danych: " + (err as Error).message)
     } finally {
       setLoading(false)
@@ -115,7 +91,7 @@ export function IdeaWizard() {
           Kreator Pomysłów Innowacji Społecznych
         </h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Małopolski Hub Innowacji Społecznych – Fiszka, Weryfikacja & Canwa
+          Małopolski Hub Innowacji Społecznych – Fiszka, Weryfikacja & Kanwa
           ROPS
         </p>
 
@@ -255,7 +231,7 @@ export function IdeaWizard() {
             ) : (
               <>
                 <Sparkles className="h-5 w-5" />
-                Generuj Canwę & Sprawdź Duble
+                Generuj Kanwę & Sprawdź Duble
               </>
             )}
           </button>
@@ -397,10 +373,10 @@ export function IdeaWizard() {
         <div className="space-y-6 py-8 text-center">
           <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            Pomysł został pomyślnie zapisany!
+            Pomysł został pomyślnie zapisany w bazie danych!
           </h2>
           <p className="mx-auto max-w-md text-slate-600 dark:text-slate-400">
-            Fiszka Innowacji oraz Canwa ROPS zostały utwalone w bazie danych.
+            Fiszka Innowacji oraz Canwa ROPS zostały utwalone w Supabase.
           </p>
 
           <div className="flex justify-center gap-4 pt-4">

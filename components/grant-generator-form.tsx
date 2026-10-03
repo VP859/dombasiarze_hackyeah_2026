@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import { generateAndSaveGrantApplication } from '../app/actions/grant-generator'
+import { generateAndSaveGrantApplication } from '@/app/actions/grant-generator'
 import { GrantApplicationContent } from '@/lib/ai'
-import { Loader2, Sparkles, FileText, Calendar, DollarSign, CheckCircle2 } from 'lucide-react'
+import { Loader2, Sparkles, FileText, Calendar, DollarSign, CheckCircle2, Database } from 'lucide-react'
 
 interface Call {
-  id: number
+  id: string
   title: string
   rules: string
   open_until?: string
@@ -18,22 +18,27 @@ interface GrantGeneratorFormProps {
 }
 
 export function GrantGeneratorForm({ ideaId, availableCalls }: GrantGeneratorFormProps) {
-  const [selectedCallId, setSelectedCallId] = useState<string>(String(availableCalls[0]?.id ?? 1))
+  const [selectedCallId, setSelectedCallId] = useState<string>(availableCalls[0]?.id || '')
   const [loading, setLoading] = useState(false)
   const [application, setApplication] = useState<GrantApplicationContent | null>(null)
+  const [savedApplicationId, setSavedApplicationId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const handleGenerateAndSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSavedApplicationId(null)
 
     try {
-      const result = await generateAndSaveGrantApplication(ideaId, selectedCallId)
-      setApplication(result.application)
+      const res = await generateAndSaveGrantApplication(ideaId, selectedCallId)
+      setApplication(res.application)
+      if (res.savedId) {
+        setSavedApplicationId(res.savedId)
+      }
     } catch (err: unknown) {
       console.error(err)
-      setError((err as Error).message || 'Nie udało się wygenerować wniosku grantowego.')
+      setError((err as Error).message || 'Nie udało się wygenerować ani zapisać wniosku.')
     } finally {
       setLoading(false)
     }
@@ -43,12 +48,13 @@ export function GrantGeneratorForm({ ideaId, availableCalls }: GrantGeneratorFor
     (sum, item) => sum + item.estimated_cost_pln,
     0
   ) || 0
+
   return (
     <div className="space-y-8">
-      <form onSubmit={handleGenerate} className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+      <form onSubmit={handleGenerateAndSave} className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div>
           <label htmlFor="callSelect" className="block text-sm font-semibold mb-2">
-            Wybierz otwarty nabór grantowy (Call):
+            Wybierz nabór grantowy (Call):
           </label>
           <select
             id="callSelect"
@@ -58,7 +64,7 @@ export function GrantGeneratorForm({ ideaId, availableCalls }: GrantGeneratorFor
           >
             {availableCalls.map((call) => (
               <option key={call.id} value={call.id}>
-                {call.title} {call.open_until ? `(do ${call.open_until})` : ''}
+                {call.title} {call.open_until ? `(do ${new Date(call.open_until).toLocaleDateString('pl-PL')})` : ''}
               </option>
             ))}
           </select>
@@ -72,30 +78,38 @@ export function GrantGeneratorForm({ ideaId, availableCalls }: GrantGeneratorFor
 
         <button
           type="submit"
-          disabled={loading || availableCalls.length === 0}
+          disabled={loading}
           className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
         >
           {loading ? (
             <>
               <Loader2 className="animate-spin h-5 w-5" />
-              Generowanie wniosku...
+              Generowanie i zapisywanie wniosku w bazie...
             </>
           ) : (
             <>
               <Sparkles className="h-5 w-5" />
-              Generuj Wniosek Grantowy
+              Generuj i Zapisz Wniosek
             </>
           )}
         </button>
       </form>
 
+      {/* Wyświetlanie wyniku z potwerdzeniem zapisu w Supabase */}
       {application && (
         <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg space-y-8">
-          <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
+          <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800 flex-wrap gap-2">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-2 py-1 rounded">
-                Szkic Wniosku Wygenerowany
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-2 py-1 rounded">
+                  Wniosek Gotowy
+                </span>
+                {savedApplicationId && (
+                  <span className="text-xs font-mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-1 rounded border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+                    <Database className="h-3 w-3" /> Zapisano w `applications` ID: {savedApplicationId}
+                  </span>
+                )}
+              </div>
               <h2 className="text-2xl font-bold mt-2">{application.project_title}</h2>
             </div>
             <CheckCircle2 className="h-8 w-8 text-green-500" />
