@@ -1,0 +1,44 @@
+[
+  {
+    "id": "starzenie",
+    "name": "Starzenie się",
+    "summary": "Coraz więcej osób starszych potrzebuje wsparcia, by dłużej żyć samodzielnie w swoim domu.",
+    "icon": "Hourglass"
+  },
+  {
+    "id": "zdrowie-psychiczne",
+    "name": "Zdrowie psychiczne",
+    "summary": "Dzieci, młodzież i dorośli czekają długo na pomoc. Brakuje wsparcia blisko domu.",
+    "icon": "Brain"
+  },
+  {
+    "id": "samotnosc",
+    "name": "Samotność",
+    "summary": "Wiele osób nie ma z kim porozmawiać. Samotność szkodzi zdrowiu tak jak choroba.",
+    "icon": "HeartHandshake"
+  },
+  {
+    "id": "wykluczenie-cyfrowe",
+    "name": "Wykluczenie cyfrowe",
+    "summary": "Część mieszkańców nie umie lub nie może korzystać z internetu, e-urzędu i bankowości.",
+    "icon": "MonitorSmartphone"
+  },
+  {
+    "id": "dostep-do-uslug",
+    "name": "Dostęp do usług",
+    "summary": "W małych miejscowościach daleko do lekarza, urzędu i pomocy społecznej.",
+    "icon": "MapPin"
+  },
+  {
+    "id": "koordynacja",
+    "name": "Koordynacja działań",
+    "summary": "Instytucje i organizacje działają osobno. Mieszkaniec nie wie, gdzie szukać pomocy.",
+    "icon": "Network"
+  },
+  {
+    "id": "zmiany-osadnicze",
+    "name": "Zmiany osadnicze",
+    "summary": "Młodzi wyjeżdżają, wsie się wyludniają, a na przedmieściach brakuje usług.",
+    "icon": "House"
+  }
+]
