@@ -81,9 +81,8 @@ ZADANIE:
 
   try {
     const ai = new GoogleGenAI({ apiKey })
-    // Model tekstowy (wcześniej był tu model embeddingów, który nie generuje tekstu).
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
