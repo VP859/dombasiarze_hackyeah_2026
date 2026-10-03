@@ -125,6 +125,8 @@
   }
   h1, h2, h3 {
     @apply font-heading;
+    /* Długie słowa (np. „Technologiczne”) przy 320 px i A+ nie wychodzą poza ekran. */
+    overflow-wrap: break-word;
   }
   html {
     @apply font-sans;
