@@ -250,7 +250,7 @@ export function IdeaWizard() {
             {loading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
-                Analizowanie przez Gemini API...
+                Analizowanie...
               </>
             ) : (
               <>

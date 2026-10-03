@@ -108,7 +108,7 @@ Istota pomysłu: ${essence}
 Grupa docelowa: ${audience || 'Nieokreślona dokładnie'}`
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite",
     contents: prompt,
     config: {
       systemInstruction:
@@ -183,7 +183,7 @@ REGULAMIN NABORU:
 - Zasady/Regulamin: ${call.rules}`
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite",
     contents: prompt,
     config: {
       systemInstruction:
