@@ -177,10 +177,8 @@ export default function Map({
   )
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setError("Twoja przeglądarka nie obsługuje geolokalizacji.")
-      return
-    }
+    // Brak geolokalizacji obsługuje już stan początkowy `error` powyżej.
+    if (!navigator.geolocation) return
 
     const initialRequestId = locationRequestIdRef.current
 
@@ -218,10 +216,13 @@ export default function Map({
             }
           })
       },
-      (error) => {
-        console.error(error)
-
-        setError("Nie udało się pobrać Twojej lokalizacji.")
+      // Odmowa zgody to normalna sytuacja, nie błąd aplikacji — bez console.error, tylko podpowiedź na mapie.
+      (positionError) => {
+        setError(
+          positionError.code === positionError.PERMISSION_DENIED
+            ? "Nie udostępniono lokalizacji. Kliknij na mapie, żeby wskazać miejsce."
+            : "Nie udało się pobrać Twojej lokalizacji. Kliknij na mapie, żeby wskazać miejsce."
+        )
       },
       {
         enableHighAccuracy: true,
