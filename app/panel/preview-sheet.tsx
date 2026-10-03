@@ -20,6 +20,8 @@ import { formatDate } from "./format"
 import { Block, Chips, Facts, SectionTitle } from "./sheet-parts"
 
 export type DraftInnovation = {
+  id: string | undefined
+  id: string
   title: string
   organization: string
   stage: Stage

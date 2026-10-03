@@ -1,7 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { CalendarIcon, CircleAlertIcon, LightbulbIcon, MailIcon, UserIcon } from "lucide-react"
+import { useState, useTransition } from "react"
+import {
+  CalendarIcon,
+  CircleAlertIcon,
+  LightbulbIcon,
+  MailIcon,
+  UserIcon,
+  Loader2,
+} from "lucide-react"
 
 import { DataTable, type Column } from "@/components/data-table"
 import { EmptyState } from "@/components/empty-state"
@@ -27,7 +34,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { REPORT_AUDIENCES, REPORT_ROLES, type Challenge, type ReportRole } from "@/seed"
+import {
+  REPORT_AUDIENCES,
+  REPORT_ROLES,
+  type Challenge,
+  type ReportRole,
+} from "@/seed"
+import { updateNeedStatusAction } from "@/app/actions/rops-panel-actions"
 
 import { formatDate, innowacje } from "./format"
 import { Block, Chips, Facts, SectionTitle } from "./sheet-parts"
@@ -43,41 +56,59 @@ export type Need = {
   audiences: string[]
   status: NeedStatus
   matches: number
-  /** ISO, np. 2026-10-03 — sortuje się poprawnie, wyświetlamy przez formatDate. */
+  /** ISO, np. 2026-10-03 */
   date: string
   email: string
 }
 
-const STATUS_VARIANT = { Nowe: "default", "W toku": "secondary", Zamknięte: "outline" } as const
+const STATUS_VARIANT = {
+  Nowe: "default",
+  "W toku": "secondary",
+  Zamknięte: "outline",
+} as const
 const STATUSES: NeedStatus[] = ["Nowe", "W toku", "Zamknięte"]
 
-const roleLabel = (role: ReportRole) => REPORT_ROLES.find((r) => r.value === role)?.label ?? role
+const roleLabel = (role: ReportRole) =>
+  REPORT_ROLES.find((r) => r.value === role)?.label ?? role
 
 type Option = { value: string | null; label: string }
 
-// Filtry działają na danych przykładowych w przeglądarce; po podłączeniu tabeli needs wystarczy podmienić listę.
-export function NeedsPanel({ needs, challenges }: { needs: Need[]; challenges: Challenge[] }) {
+export function NeedsPanel({
+  needs,
+  challenges,
+}: {
+  needs: Need[]
+  challenges: Challenge[]
+}) {
   const [q, setQ] = useState("")
   const [challenge, setChallenge] = useState<string | null>(null)
   const [audience, setAudience] = useState<string | null>(null)
   const [role, setRole] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
 
-  const challengeName = (id: string) => challenges.find((c) => c.id === id)?.name ?? id
+  const challengeName = (id: string) =>
+    challenges.find((c) => c.id === id)?.name ?? id
   const query = q.trim().toLocaleLowerCase("pl")
   const filtered = needs.filter(
     (n) =>
-      (!query || `${n.gmina} ${n.text}`.toLocaleLowerCase("pl").includes(query)) &&
+      (!query ||
+        `${n.gmina} ${n.text}`.toLocaleLowerCase("pl").includes(query)) &&
       (!challenge || n.challenges.includes(challenge)) &&
       (!audience || n.audiences.includes(audience)) &&
       (!role || n.role === role) &&
       (!status || n.status === status)
   )
   const hasFilters = Boolean(query || challenge || audience || role || status)
-  // Kafelki od wyzwania z największą liczbą zgłoszeń.
   const byCount = challenges
-    .map((c) => ({ challenge: c, count: needs.filter((n) => n.challenges.includes(c.id)).length }))
-    .sort((a, b) => b.count - a.count || a.challenge.name.localeCompare(b.challenge.name, "pl"))
+    .map((c) => ({
+      challenge: c,
+      count: needs.filter((n) => n.challenges.includes(c.id)).length,
+    }))
+    .sort(
+      (a, b) =>
+        b.count - a.count ||
+        a.challenge.name.localeCompare(b.challenge.name, "pl")
+    )
 
   const columns: Column<Need>[] = [
     {
@@ -103,21 +134,31 @@ export function NeedsPanel({ needs, challenges }: { needs: Need[]; challenges: C
       header: "Kto zgłosił",
       className: "hidden lg:table-cell",
       sortValue: (n) => roleLabel(n.role),
-      cell: (n) => <span className="text-muted-foreground">{roleLabel(n.role)}</span>,
+      cell: (n) => (
+        <span className="text-muted-foreground">{roleLabel(n.role)}</span>
+      ),
     },
     {
       id: "matches",
       header: "Dopasowania",
       className: "hidden md:table-cell",
       sortValue: (n) => n.matches,
-      cell: (n) => <span className="whitespace-nowrap text-muted-foreground">{innowacje(n.matches)}</span>,
+      cell: (n) => (
+        <span className="whitespace-nowrap text-muted-foreground">
+          {innowacje(n.matches)}
+        </span>
+      ),
     },
     {
       id: "date",
       header: "Wpłynęło",
       className: "hidden md:table-cell",
       sortValue: (n) => n.date,
-      cell: (n) => <span className="whitespace-nowrap text-muted-foreground">{formatDate(n.date)}</span>,
+      cell: (n) => (
+        <span className="whitespace-nowrap text-muted-foreground">
+          {formatDate(n.date)}
+        </span>
+      ),
     },
     {
       id: "status",
@@ -147,7 +188,9 @@ export function NeedsPanel({ needs, challenges }: { needs: Need[]; challenges: C
         <h3 id="by-challenge" className="text-lg font-semibold">
           Zgłoszenia według wyzwań
         </h3>
-        <p className="text-muted-foreground">Kliknij wyzwanie, żeby pokazać tylko jego zgłoszenia.</p>
+        <p className="text-muted-foreground">
+          Kliknij wyzwanie, żeby pokazać tylko jego zgłoszenia.
+        </p>
         <div className="flex flex-wrap gap-2">
           {byCount.map(({ challenge: c, count }) => {
             const active = challenge === c.id
@@ -184,28 +227,40 @@ export function NeedsPanel({ needs, challenges }: { needs: Need[]; challenges: C
           label="Wyzwanie"
           value={challenge}
           onChange={setChallenge}
-          items={[{ value: null, label: "Wszystkie" }, ...challenges.map((c) => ({ value: c.id, label: c.name }))]}
+          items={[
+            { value: null, label: "Wszystkie" },
+            ...challenges.map((c) => ({ value: c.id, label: c.name })),
+          ]}
         />
         <FilterSelect
           id="needs-audience"
           label="Kogo dotyczy"
           value={audience}
           onChange={setAudience}
-          items={[{ value: null, label: "Wszyscy" }, ...REPORT_AUDIENCES.map((a) => ({ value: a, label: a }))]}
+          items={[
+            { value: null, label: "Wszyscy" },
+            ...REPORT_AUDIENCES.map((a) => ({ value: a, label: a })),
+          ]}
         />
         <FilterSelect
           id="needs-role"
           label="Kto zgłosił"
           value={role}
           onChange={setRole}
-          items={[{ value: null, label: "Wszyscy" }, ...REPORT_ROLES.map((r) => ({ value: r.value, label: r.label }))]}
+          items={[
+            { value: null, label: "Wszyscy" },
+            ...REPORT_ROLES.map((r) => ({ value: r.value, label: r.label })),
+          ]}
         />
         <FilterSelect
           id="needs-status"
           label="Status"
           value={status}
           onChange={setStatus}
-          items={[{ value: null, label: "Każdy" }, ...STATUSES.map((s) => ({ value: s, label: s }))]}
+          items={[
+            { value: null, label: "Każdy" },
+            ...STATUSES.map((s) => ({ value: s, label: s })),
+          ]}
         />
       </FieldGroup>
 
@@ -229,7 +284,10 @@ export function NeedsPanel({ needs, challenges }: { needs: Need[]; challenges: C
           initialSort={{ id: "date", dir: "desc" }}
         />
       ) : (
-        <EmptyState title="Brak zgłoszeń dla tych filtrów" description="Zmień albo wyczyść filtry.">
+        <EmptyState
+          title="Brak zgłoszeń dla tych filtrów"
+          description="Zmień albo wyczyść filtry."
+        >
           <Button type="button" variant="outline" onClick={clear}>
             Wyczyść filtry
           </Button>
@@ -255,7 +313,12 @@ function FilterSelect({
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Select id={id} items={items} value={value} onValueChange={(next) => onChange((next as string | null) ?? null)}>
+      <Select
+        id={id}
+        items={items}
+        value={value}
+        onValueChange={(next) => onChange((next as string | null) ?? null)}
+      >
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
@@ -273,30 +336,67 @@ function FilterSelect({
   )
 }
 
-function NeedSheet({ need, challengeName }: { need: Need; challengeName: (id: string) => string }) {
+function NeedSheet({
+  need,
+  challengeName,
+}: {
+  need: Need
+  challengeName: (id: string) => string
+}) {
+  const [isPending, startTransition] = useTransition()
+
+  const handleStatusChange = (nextStatus: NeedStatus) => {
+    startTransition(async () => {
+      try {
+        await updateNeedStatusAction(need.id, nextStatus)
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Błąd aktualizacji statusu")
+      }
+    })
+  }
+
   return (
     <Sheet>
-      <SheetTrigger render={<Button type="button" size="sm" variant="outline" />}>
+      <SheetTrigger
+        render={<Button type="button" size="sm" variant="outline" />}
+      >
         Szczegóły<span className="sr-only">: {need.gmina}</span>
       </SheetTrigger>
       <SheetContent className="w-full! sm:max-w-xl!">
         <SheetHeader className="pr-16">
           <Badge variant={STATUS_VARIANT[need.status]}>{need.status}</Badge>
-          <SheetTitle className="text-2xl leading-tight font-bold">Zgłoszenie: {need.gmina}</SheetTitle>
+          <SheetTitle className="text-2xl leading-tight font-bold">
+            Zgłoszenie: {need.gmina}
+          </SheetTitle>
           <SheetDescription>Wpłynęło {formatDate(need.date)}</SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 pb-6 text-base">
           <Facts
             items={[
-              { icon: UserIcon, label: "Kto zgłosił", value: roleLabel(need.role) },
-              { icon: CalendarIcon, label: "Wpłynęło", value: formatDate(need.date) },
-              { icon: LightbulbIcon, label: "Dopasowane innowacje", value: innowacje(need.matches) },
+              {
+                icon: UserIcon,
+                label: "Kto zgłosił",
+                value: roleLabel(need.role),
+              },
+              {
+                icon: CalendarIcon,
+                label: "Wpłynęło",
+                value: formatDate(need.date),
+              },
+              {
+                icon: LightbulbIcon,
+                label: "Dopasowane innowacje",
+                value: innowacje(need.matches),
+              },
               {
                 icon: MailIcon,
                 label: "Kontakt",
                 value: (
-                  <a href={`mailto:${need.email}`} className="break-all underline underline-offset-4">
+                  <a
+                    href={`mailto:${need.email}`}
+                    className="break-all underline underline-offset-4"
+                  >
                     {need.email}
                   </a>
                 ),
@@ -307,6 +407,27 @@ function NeedSheet({ need, challengeName }: { need: Need; challengeName: (id: st
           <Block icon={CircleAlertIcon} title="Opis problemu">
             <p>{need.text}</p>
           </Block>
+
+          <section className="flex flex-col gap-3">
+            <SectionTitle>Zmień status zgłoszenia</SectionTitle>
+            <div className="flex flex-wrap gap-2">
+              {STATUSES.map((st) => (
+                <Button
+                  key={st}
+                  type="button"
+                  size="sm"
+                  variant={need.status === st ? "default" : "outline"}
+                  disabled={isPending || need.status === st}
+                  onClick={() => handleStatusChange(st)}
+                >
+                  {isPending && need.status !== st ? (
+                    <Loader2 className="mr-1 size-3 animate-spin" />
+                  ) : null}
+                  {st}
+                </Button>
+              ))}
+            </div>
+          </section>
 
           <section className="flex flex-col gap-3">
             <SectionTitle>Czego dotyczy</SectionTitle>
@@ -320,7 +441,9 @@ function NeedSheet({ need, challengeName }: { need: Need; challengeName: (id: st
         </div>
 
         <SheetFooter className="border-t">
-          <SheetClose render={<Button type="button" variant="outline" />}>Zamknij</SheetClose>
+          <SheetClose render={<Button type="button" variant="outline" />}>
+            Zamknij
+          </SheetClose>
         </SheetFooter>
       </SheetContent>
     </Sheet>
