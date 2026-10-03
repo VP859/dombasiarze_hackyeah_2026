@@ -41,7 +41,7 @@ export default function Zglos() {
       description: reportText.trim(),
       challenges: data.getAll("challenge"),
       audiences: data.getAll("audience"),
-      gmina: gmina.trim(),
+      gmina: mapLocation?.municipality ?? "",
       author_role: data.get("author_role"),
       author_email: data.get("author_email"),
       location: mapLocation,
