@@ -7,21 +7,6 @@ if (!process.env.GEMINI_API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
-// export async function generateEmbedding(text: string): Promise<number[]> {
-//   const response = await ai.models.embedContent({
-//     model: "gemini-embedding-001",
-//     contents: text,
-//   })
-
-//   const embeddingValues = response.embeddings?.[0]?.values
-
-//   if (!Array.isArray(embeddingValues)) {
-//     throw new Error("Nie udało się wygenerować wektora embedding.")
-//   }
-
-//   return embeddingValues
-// }
-
 export async function generateEmbedding(text: string): Promise<number[]> {
   const response = await ai.models.embedContent({
     model: 'gemini-embedding-001',
