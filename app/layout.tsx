@@ -1,16 +1,32 @@
-﻿import { Geist_Mono, Inter } from "next/font/google"
+import { Geist_Mono, Inter } from "next/font/google"
+
 import type { Metadata } from "next"
+import { Figtree, Inter } from "next/font/google"
+import Link from "next/link"
 
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { RoleSwitcher } from "@/components/role-switcher"
+import { SiteNav } from "@/components/site-nav"
+import { TextSizeToggle } from "@/components/text-size-toggle"
+import { ThemeProvider, ThemeToggle } from "@/components/theme-provider"
+import { buttonVariants } from "@/components/ui/button"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
+const inter = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-sans" })
+const figtree = Figtree({ subsets: ["latin", "latin-ext"], variable: "--font-heading" })
 
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
+export const metadata: Metadata = {
+  title: {
+    default: "Podaj Dalej — Małopolski Hub Innowacji Społecznych",
+    template: "%s · Podaj Dalej",
+  },
+  description:
+    "Znajdź sprawdzone innowacje społeczne i wdróż je w swojej gminie. Małopolski Hub Innowacji Społecznych, ROPS Kraków.",
+}
+
+// Przywraca rozmiar tekstu z przycisku A+ przed pierwszym malowaniem (bez mignięcia).
+const textSizeScript = `try{var s=localStorage.getItem("text-size");if(s)document.documentElement.style.fontSize=s}catch(e){}`
 
 export const metadata: Metadata = {
   title: {
@@ -29,10 +45,45 @@ export default function RootLayout({
     <html
       lang="pl"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", inter.variable)}
+      className={cn("scroll-pt-24 font-sans antialiased", inter.variable, figtree.variable)}
     >
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: textSizeScript }} />
+      </head>
+      <body className="flex min-h-svh flex-col">
+        <ThemeProvider>
+          <TooltipProvider>
+            <a
+              href="#main"
+              className={cn(buttonVariants(), "sr-only focus:not-sr-only focus:m-2 focus:self-start")}
+            >
+              Przejdź do treści
+            </a>
+            {/* Przyklejony tylko przy wysokim oknie — przy dużym powiększeniu nie zasłania treści. */}
+            <header className="top-0 z-40 border-b bg-background [@media(min-height:30rem)]:sticky">
+              <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3">
+                <Link href="/" className="mr-auto font-heading text-2xl font-bold">
+                  Podaj Dalej
+                </Link>
+                <SiteNav />
+                <RoleSwitcher />
+                <TextSizeToggle />
+                <ThemeToggle />
+              </div>
+            </header>
+            <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 outline-none">
+              {children}
+            </main>
+            <footer className="border-t">
+              <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-muted-foreground">
+                <p>Małopolski Hub Innowacji Społecznych · ROPS Kraków</p>
+                <Link href="/deklaracja-dostepnosci" className="underline underline-offset-4">
+                  Deklaracja dostępności
+                </Link>
+              </div>
+            </footer>
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
