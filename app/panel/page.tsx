@@ -19,6 +19,7 @@ export const metadata: Metadata = { title: "Panel ROPS" }
 // Docelowo: solutions (status draft), needs, messages, calls/applications z Supabase.
 const TO_VERIFY: DraftInnovation[] = [
   {
+    id: "draft-1",
     title: "Sąsiedzka wypożyczalnia sprzętu rehabilitacyjnego",
     organization: "Stowarzyszenie Pomocna Dłoń (fikcyjne)",
     stage: "pomysł",
@@ -37,6 +38,7 @@ const TO_VERIFY: DraftInnovation[] = [
     resources: ["Pomieszczenie na sprzęt", "Wolontariusz na 2 dyżury w tygodniu", "Prosty rejestr wypożyczeń"],
   },
   {
+    id: "draft-2",
     title: "Wirtualny asystent seniora w urzędzie gminy",
     organization: "Fundacja Cyfrowe Jutro (fikcyjna)",
     stage: "pilotaż",
@@ -51,6 +53,7 @@ const TO_VERIFY: DraftInnovation[] = [
     resources: ["Tablet ze stojakiem", "Licencja na asystenta", "Szkolenie dla 2 urzędników"],
   },
   {
+    id: "draft-3",
     title: "Klub młodych opiekunów",
     organization: "GOPS w Przykładowie (fikcyjny)",
     stage: "pomysł",
