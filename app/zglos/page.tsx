@@ -1,5 +1,6 @@
 "use client";
 
+
 import { type FormEvent, useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CheckCircle2Icon } from "lucide-react";
@@ -24,21 +25,14 @@ const CHIP =
 
 export default function Zglos() {
   const [reportText, setReportText] = useState("");
-  const [gmina, setGmina] = useState("");
+
   const [mapLocation, setMapLocation] = useState<OperationLocation | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const lastMunicipality = useRef("");
 
-  // Gminę wpisujemy z mapy tylko wtedy, gdy się zmieniła — ręczna poprawka nie jest nadpisywana przy zmianie promienia.
-  const handleMapLocationChange = useCallback((location: OperationLocation | null) => {
-    setMapLocation(location);
-    const municipality = location?.municipality?.trim() ?? "";
-    if (municipality && municipality !== lastMunicipality.current) {
-      lastMunicipality.current = municipality;
-      setGmina(municipality);
-    }
-  }, []);
-
+  const handleMapLocationChange = useCallback(
+    (location: OperationLocation | null) => setMapLocation(location),
+    []
+  );
   // ponytail: na razie tylko log — zapis do bazy z analizą AI to processNeedAction (app/actions/matchmaking.ts).
   const submitReport = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -56,18 +50,18 @@ export default function Zglos() {
   };
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-4">
         <p className="text-sm font-semibold tracking-wider text-primary uppercase">Zgłoś problem</p>
-        <h1 className="text-4xl font-bold text-balance md:text-5xl">Na czym polega Twój problem?</h1>
-        <p className="max-w-2xl text-xl text-muted-foreground">
+        <h1 className="text-3xl font-bold text-balance md:text-4xl">Na czym polega Twój problem?</h1>
+        <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
           Opisz go własnymi słowami albo nagraj głosem. Pokażemy innowacje, które rozwiązały podobny
           problem w innych gminach.
         </p>
       </div>
 
-      <section className="flex flex-col gap-8">
-        <h2 className="text-2xl font-bold">1. Problem</h2>
+      <section className="flex flex-col gap-6">
+        <h2 className="text-xl font-bold">1. Problem</h2>
 
         <Field>
           <FieldLabel htmlFor="report-text">Opisz problem</FieldLabel>
@@ -127,32 +121,24 @@ export default function Zglos() {
         </FieldSet>
       </section>
 
-      <section className="flex flex-col gap-6">
+      <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-bold">2. Gdzie występuje problem?</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl font-bold">2. Gdzie występuje problem?</h2>
+          <p className="text-sm text-muted-foreground">
             Kliknij na mapie miejsce, którego dotyczy zgłoszenie, i ustaw obszar.
           </p>
         </div>
         <Map onLocationChange={handleMapLocationChange} />
-        <Field className="max-w-md">
-          <FieldLabel htmlFor="gmina">Gmina</FieldLabel>
-          <Input
-            id="gmina"
-            name="gmina"
-            form={FORM_ID}
-            required
-            value={gmina}
-            onChange={(event) => setGmina(event.target.value)}
-            placeholder="Np. Skawina"
-            autoComplete="address-level2"
-          />
-          <FieldDescription>Uzupełni się samo po kliknięciu na mapie. Możesz ją poprawić.</FieldDescription>
-        </Field>
+        <input
+          type="hidden"
+          name="gmina"
+          form={FORM_ID}
+          value={mapLocation?.municipality ?? ""}
+        />
       </section>
 
-      <form id={FORM_ID} onSubmit={submitReport} className="flex flex-col gap-8">
-        <h2 className="text-2xl font-bold">3. O Tobie</h2>
+      <form id={FORM_ID} onSubmit={submitReport} className="flex flex-col gap-6">
+        <h2 className="text-xl font-bold">3. O Tobie</h2>
 
         <FieldSet>
           <FieldLegend>Kim jesteś?</FieldLegend>
