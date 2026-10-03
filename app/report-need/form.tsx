@@ -107,7 +107,7 @@ export default function MatchmakingForm() {
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
             <div className="flex items-center space-x-2 mb-4">
               <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                Analiza Gemini AI
+                Analiza Asystenta AI
               </span>
               <span className="text-sm font-medium text-slate-500">
                 Pewność: {Math.round(state.data.analysis.confidence_score * 100)}%
