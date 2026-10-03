@@ -4,26 +4,63 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 
+// Web Speech API: rozpoznawanie mowy wbudowane w przeglądarkę (Chrome, Edge, Safari).
+// TypeScript nie ma typów samego SpeechRecognition, więc wystarczy minimalny opis.
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: { results: SpeechRecognitionResultList }) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+function getSpeechRecognition() {
+  const w = window as typeof window & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition;
+}
+
+const RECOGNITION_ERRORS: Record<string, string> = {
+  "not-allowed": "Brak dostępu do mikrofonu. Zezwól na mikrofon w przeglądarce.",
+  "service-not-allowed": "Brak dostępu do mikrofonu. Zezwól na mikrofon w przeglądarce.",
+  "no-speech": "Nie usłyszeliśmy mowy. Spróbuj jeszcze raz.",
+  "audio-capture": "Nie znaleziono mikrofonu.",
+  network: "Rozpoznawanie mowy wymaga połączenia z internetem.",
+};
+
 export default function Zglos() {
   const [isRecording, setIsRecording] = useState(false);
   const [waveformLevels, setWaveformLevels] = useState<number[]>([]);
   const [frozenWaveformHeights, setFrozenWaveformHeights] = useState<number[] | null>(null);
-  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
+  const [hasRecording, setHasRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcriptionError, setTranscriptionError] = useState("");
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
   const lastSampleAtRef = useRef(0);
   const smoothedLevelRef = useRef(0);
   const waveformViewportRef = useRef<HTMLSpanElement | null>(null);
 
   const startRecording = async () => {
+    const SpeechRecognition = getSpeechRecognition();
+    if (!SpeechRecognition) {
+      setTranscriptionError(
+        "Ta przeglądarka nie obsługuje dyktowania. Użyj Chrome, Edge lub Safari albo wpisz zgłoszenie."
+      );
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -32,75 +69,44 @@ export default function Zglos() {
       streamRef.current = stream;
       setWaveformLevels([]);
       setFrozenWaveformHeights(null);
-      setRecordedAudio(null);
+      setHasRecording(false);
       setTranscript("");
       setTranscriptionError("");
-      setIsTranscribing(false);
       lastSampleAtRef.current = 0;
       smoothedLevelRef.current = 0;
 
-      // Nagrywanie
-      const recorder = new MediaRecorder(stream);
+      // Rozpoznawanie mowy na żywo, bez wysyłania nagrania na nasz serwer
+      const recognition = new SpeechRecognition();
+      recognition.lang = "pl-PL";
+      recognition.continuous = true;
+      recognition.interimResults = true;
 
-      mediaRecorderRef.current = recorder;
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
+      recognition.onresult = (event) => {
+        setTranscript(
+          Array.from(event.results, (result) => result[0].transcript)
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim()
+        );
       };
 
-      recorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, {
-          type: recorder.mimeType,
-        });
-
-        setRecordedAudio(audioBlob);
-        setIsTranscribing(true);
-
-        const formData = new FormData();
-        formData.append("audio", audioBlob, "recording.webm");
-
-        try {
-          const response = await fetch("/api/transcribe", {
-            method: "POST",
-            body: formData,
-          });
-          const responseText = await response.text();
-          let result: {
-            transcript?: string;
-            error?: string;
-          };
-
-          try {
-            if (!responseText.trim()) {
-              throw new Error("Pusta odpowiedź serwera.");
-            }
-            result = JSON.parse(responseText) as typeof result;
-          } catch {
-            throw new Error(
-              `Serwer transkrypcji zwrócił nieprawidłową odpowiedź (HTTP ${response.status}).`
-            );
-          }
-
-          if (!response.ok) {
-            throw new Error(result.error || "Transkrypcja nie powiodła się.");
-          }
-
-          setTranscript(result.transcript || "Nie rozpoznano mowy w nagraniu.");
-        } catch (error) {
+      recognition.onerror = (event) => {
+        if (event.error !== "aborted") {
           setTranscriptionError(
-            error instanceof Error
-              ? error.message
-              : "Nie udało się przygotować transkrypcji nagrania."
+            RECOGNITION_ERRORS[event.error] ?? "Nie udało się rozpoznać mowy."
           );
-        } finally {
-          setIsTranscribing(false);
         }
       };
 
-      recorder.start();
+      // Przeglądarka sama kończy po dłuższej ciszy — wtedy zatrzymujemy też falę
+      recognition.onend = () => {
+        if (recognitionRef.current === recognition) {
+          stopRecording();
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
 
       // Analiza mikrofonu
       const audioContext = new AudioContext();
@@ -158,6 +164,7 @@ export default function Zglos() {
         "Nie udało się uruchomić mikrofonu:",
         error
       );
+      setTranscriptionError("Nie udało się uruchomić mikrofonu.");
     }
   };
 
@@ -172,7 +179,10 @@ export default function Zglos() {
       );
     }
 
-    mediaRecorderRef.current?.stop();
+    // Najpierw zerujemy ref, żeby onend nie wywołał stopRecording drugi raz
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    recognition?.stop();
 
     streamRef.current?.getTracks().forEach((track) => {
       track.stop();
@@ -184,11 +194,11 @@ export default function Zglos() {
 
     audioContextRef.current?.close();
 
-    mediaRecorderRef.current = null;
     streamRef.current = null;
     audioContextRef.current = null;
     analyserRef.current = null;
 
+    setHasRecording(true);
     setIsRecording(false);
   };
 
@@ -202,6 +212,10 @@ export default function Zglos() {
 
   useEffect(() => {
     return () => {
+      const recognition = recognitionRef.current;
+      recognitionRef.current = null;
+      recognition?.stop();
+
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -236,13 +250,13 @@ export default function Zglos() {
         <div className="relative flex h-14 min-w-0 flex-1 items-center overflow-hidden rounded-md border border-border bg-background">
           <input
             type="text"
-            placeholder={isRecording || recordedAudio ? "" : "Wpisz swoje zgłoszenie"}
-            disabled={isRecording || Boolean(recordedAudio)}
+            placeholder={isRecording || hasRecording ? "" : "Wpisz swoje zgłoszenie"}
+            disabled={isRecording || hasRecording}
             className="relative z-10 h-full w-full bg-transparent px-3 py-3 text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-default disabled:text-transparent"
           />
 
           {/* MESSENGER STYLE WAVEFORM */}
-          {(isRecording || recordedAudio) && (
+          {(isRecording || hasRecording) && (
             <div
               className="pointer-events-none absolute inset-0 flex items-center gap-3 px-3"
               role="status"
@@ -301,17 +315,7 @@ export default function Zglos() {
           }
           aria-pressed={isRecording}
           title="Czat głosowy"
-          onClick={() =>
-            setIsRecording((recording) => {
-              if (recording) {
-                stopRecording();
-                return false;
-              }
-
-              startRecording();
-              return true;
-            })
-          }
+          onClick={toggleRecording}
           className={`voice-chat-icon relative h-[3.5rem] w-[3.5rem] rounded-md border-2 border-black bg-white text-black hover:bg-neutral-100 dark:border-primary dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 ${
             isRecording ? "is-recording" : ""
           }`}
@@ -334,7 +338,7 @@ export default function Zglos() {
         </Button>
       </div>
 
-      {(recordedAudio || isTranscribing || transcript || transcriptionError) && (
+      {(isRecording || hasRecording || transcriptionError) && (
         <section
           className="mt-3 w-full max-w-5xl rounded-md border border-border bg-muted p-3"
           role="status"
@@ -342,9 +346,9 @@ export default function Zglos() {
         >
           <h2 className="text-sm font-semibold text-foreground">Transkrypcja nagrania</h2>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
-            {isTranscribing
-              ? "Przygotowuję transkrypcję…"
-              : transcriptionError || transcript || "Nie rozpoznano mowy w nagraniu."}
+            {transcriptionError ||
+              transcript ||
+              (isRecording ? "Słucham… zacznij mówić." : "Nie rozpoznano mowy w nagraniu.")}
           </p>
         </section>
       )}
