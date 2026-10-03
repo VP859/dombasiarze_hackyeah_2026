@@ -97,5 +97,5 @@ export async function addReview(formData: FormData) {
 
   if (error) throw new Error(`Błąd dodawania oceny: ${error.message}`);
 
-  revalidatePath(`/eksploracja-innowacji/${solution_id}`);
+  revalidatePath(`/innowacja/${solution_id}`);
 }

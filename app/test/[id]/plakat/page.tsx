@@ -4,7 +4,7 @@ import QRCode from "qrcode"
 
 import { RatingForm } from "@/components/rating-form"
 import { Card } from "@/components/ui/card"
-import { getSolution } from "@/seed"
+import { getSolutionById } from "@/app/actions/solutions"
 
 export const metadata: Metadata = {
   title: "Plakat testu",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function PosterPage({ params }: PageProps<"/test/[id]/plakat">) {
   const { id } = await params
-  const solution = getSolution(id)
+  const solution = await getSolutionById(id)
   if (!solution) notFound()
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
