@@ -13,11 +13,12 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     contents: text,
   });
 
-  if (!response.embeddings?.values && !response.embeddings?.[0]?.values) {
+  const values = response.embeddings?.[0]?.values;
+  if (!values) {
     throw new Error('Nie udało się wygenerować wektora embedding.');
   }
 
-  return response.embeddings?.values || response.embeddings[0].values;
+  return values;
 }
 
 
