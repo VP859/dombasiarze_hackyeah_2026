@@ -16,8 +16,6 @@ const Map = dynamic(() => import("@/components/Map"), {
   ssr: false,
 });
 
-// Pola nazwane jak w processNeedAction (description, gmina, author_role, author_email),
-// żeby podpięcie zapisu do bazy było jedną zmianą.
 const FORM_ID = "report-form";
 
 const CHIP =
@@ -33,7 +31,7 @@ export default function Zglos() {
     (location: OperationLocation | null) => setMapLocation(location),
     []
   );
-  // ponytail: na razie tylko log — zapis do bazy z analizą AI to processNeedAction (app/actions/matchmaking.ts).
+
   const submitReport = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -52,7 +50,7 @@ export default function Zglos() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-4">
-        <p className="text-sm font-semibold tracking-wider text-primary uppercase">Zgłoś problem</p>
+        <p className="text-xl font-black tracking-wider text-primary uppercase mb-[-1rem]">Zgłoś sprawę</p>
         <h1 className="text-3xl font-bold text-balance md:text-4xl">Na czym polega Twój problem?</h1>
         <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
           Opisz go własnymi słowami albo nagraj głosem. Pokażemy innowacje, które rozwiązały podobny
@@ -60,11 +58,12 @@ export default function Zglos() {
         </p>
       </div>
 
-      <section className="flex flex-col gap-6">
-        <h2 className="text-xl font-bold">1. Problem</h2>
-
+      <section className="flex flex-col gap-3">
+        <h2 className="text-2xl font-bold">1.Opisz problem</h2>
+        <FieldDescription className="text-sm text-muted-foreground mt-[-0.5rem]">
+          Możesz też kliknąć mikrofon w polu i powiedzieć, na czym polega problem.
+        </FieldDescription>
         <Field>
-          <FieldLabel htmlFor="report-text">Opisz problem</FieldLabel>
           <Input
             id="report-text"
             name="description"
@@ -72,14 +71,14 @@ export default function Zglos() {
             required
             value={reportText}
             onChange={(event) => setReportText(event.target.value)}
+            className=" rounded-lg border p-3 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Np. seniorzy z sołectw nie mają jak dojechać do lekarza"
           />
-          <FieldDescription>Możesz też kliknąć mikrofon w polu i powiedzieć, na czym polega problem.</FieldDescription>
         </Field>
 
         <FieldSet>
-          <FieldLegend>Czego dotyczy problem? (opcjonalnie)</FieldLegend>
-          <FieldDescription>
+          <FieldLegend className="text-xl font-bold">Czego dotyczy problem? (opcjonalnie)</FieldLegend>
+          <FieldDescription className="text-sm text-muted-foreground mt-[-0.5rem]">
             Zaznacz wszystko, co pasuje. Nie musisz, ale to pomaga pracownikom ROPS szybciej ocenić
             zgłoszenie i dobrać rozwiązanie.
           </FieldDescription>
@@ -91,7 +90,7 @@ export default function Zglos() {
                   name="challenge"
                   value={challenge.id}
                   form={FORM_ID}
-                  className="size-5 shrink-0 accent-primary"
+                  className="size-4 shrink-0 accent-primary"
                 />
                 {challenge.name}
               </label>

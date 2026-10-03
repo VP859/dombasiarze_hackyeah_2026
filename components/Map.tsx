@@ -3,7 +3,6 @@
 import {
   type FormEvent,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react"
@@ -111,27 +110,29 @@ function CenterOnUser({
 }) {
   const map = useMap()
 
-  // useLayoutEffect: jego sprzątanie biegnie przed map.remove() w MapContainer (zwykły efekt rodzica),
-  // więc zdążymy zatrzymać animację, zanim Leaflet usunie mapę.
-  useLayoutEffect(() => {
-    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)")
-      .matches
+  useEffect(() => {
+    let cancelled = false
 
-    if (!fitBounds) {
-      map.panTo([center.lat, center.lng], { animate, duration: 0.35 })
-    } else {
+    map.whenReady(() => {
+      if (cancelled || !map.getPane("mapPane")) return
+
+      if (!fitBounds) {
+        map.setView([center.lat, center.lng], map.getZoom(), { animate: false })
+        return
+      }
+
       const circleBounds = L.latLng(center.lat, center.lng).toBounds(
         DEFAULT_OPERATION_RADIUS_METERS * 2
       )
-      const options = { padding: [48, 48] as L.PointTuple, maxZoom: 15 }
-      if (animate) map.flyToBounds(circleBounds, { ...options, duration: 0.35 })
-      else map.fitBounds(circleBounds, { ...options, animate: false })
-    }
+      map.fitBounds(circleBounds, {
+        padding: [48, 48],
+        maxZoom: 15,
+        animate: false,
+      })
+    })
 
-    // Zatrzymaj animację przy odmontowaniu (zmiana strony, podwójny montaż w dev) — inaczej Leaflet
-    // sięga do usuniętej mapy („reading '_leaflet_pos'”). Gdy mapy już nie ma, nie ma czego zatrzymywać.
     return () => {
-      if (map.getPane("mapPane")) map.stop()
+      cancelled = true
     }
   }, [center, fitBounds, map])
 
