@@ -34,6 +34,24 @@ export type Review = {
 
 export const STAGES: Stage[] = ["pomysł", "pilotaż", "sprawdzona"]
 
+// Opcje formularza „Zgłoś problem” — te same wartości filtruje Panel ROPS.
+// Role jak w lib/schemas.ts (needSchema.author_role).
+export const REPORT_ROLES = [
+  { value: "resident", label: "Mieszkaniec", hint: "Zgłaszam problem z mojej okolicy." },
+  { value: "ngo", label: "Organizacja", hint: "Działam w stowarzyszeniu lub fundacji." },
+  { value: "official", label: "Gmina lub samorząd", hint: "Pracuję w urzędzie lub jednostce gminy." },
+] as const
+
+export type ReportRole = (typeof REPORT_ROLES)[number]["value"]
+
+export const REPORT_AUDIENCES = [
+  "Seniorzy",
+  "Dzieci i młodzież",
+  "Rodziny",
+  "Osoby z niepełnosprawnościami",
+  "Wszyscy mieszkańcy",
+]
+
 const solutions = solutionsData as Solution[]
 const challenges: Challenge[] = challengesData
 const reviews: Review[] = reviewsData

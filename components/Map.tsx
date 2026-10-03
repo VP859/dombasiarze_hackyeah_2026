@@ -1,6 +1,6 @@
 "use client"
 
-import { type FormEvent, useEffect, useRef, useState } from "react"
+import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
   MapContainer,
   TileLayer,
@@ -103,24 +103,27 @@ function CenterOnUser({
 }) {
   const map = useMap()
 
-  useEffect(() => {
+  // useLayoutEffect: jego sprzątanie biegnie przed map.remove() w MapContainer (zwykły efekt rodzica),
+  // więc zdążymy zatrzymać animację, zanim Leaflet usunie mapę.
+  useLayoutEffect(() => {
+    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
     if (!fitBounds) {
-      map.panTo([center.lat, center.lng], {
-        animate: true,
-        duration: 0.35,
-      })
-      return
+      map.panTo([center.lat, center.lng], { animate, duration: 0.35 })
+    } else {
+      const circleBounds = L.latLng(center.lat, center.lng).toBounds(
+        DEFAULT_OPERATION_RADIUS_METERS * 2
+      )
+      const options = { padding: [48, 48] as L.PointTuple, maxZoom: 15 }
+      if (animate) map.flyToBounds(circleBounds, { ...options, duration: 0.35 })
+      else map.fitBounds(circleBounds, { ...options, animate: false })
     }
 
-    const circleBounds = L.latLng(center.lat, center.lng).toBounds(
-      DEFAULT_OPERATION_RADIUS_METERS * 2
-    )
-
-    map.flyToBounds(circleBounds, {
-      duration: 0.35,
-      padding: [48, 48],
-      maxZoom: 15,
-    })
+    // Zatrzymaj animację przy odmontowaniu (zmiana strony, podwójny montaż w dev) — inaczej Leaflet
+    // sięga do usuniętej mapy („reading '_leaflet_pos'”). Gdy mapy już nie ma, nie ma czego zatrzymywać.
+    return () => {
+      if (map.getPane("mapPane")) map.stop()
+    }
   }, [center, fitBounds, map])
 
   return null
@@ -157,7 +160,10 @@ export default function Map({
   const [isSearchingCity, setIsSearchingCity] = useState(false)
   const locationRequestIdRef = useRef(0)
 
-  const [error, setError] = useState<string | null>(null)
+  // Mapa ładuje się tylko w przeglądarce (ssr: false), więc navigator jest dostępny od początku.
+  const [error, setError] = useState<string | null>(() =>
+    navigator.geolocation ? null : "Twoja przeglądarka nie obsługuje geolokalizacji."
+  )
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -331,9 +337,9 @@ export default function Map({
   return (
     <>
       <div className="grid w-full max-w-7xl grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="relative h-[500px] w-full min-w-0 overflow-hidden rounded-xl">
+        <div className="relative isolate h-[500px] w-full min-w-0 overflow-hidden rounded-4xl ring-1 ring-foreground/10">
           <MapContainer
-            center={[52.2297, 21.0122]}
+            center={[50.0614, 19.9366]}
             zoom={13}
             className="h-full w-full"
           >
@@ -349,8 +355,8 @@ export default function Map({
                   center={[operationCenter.lat, operationCenter.lng]}
                   radius={radius}
                   pathOptions={{
-                    color: "red",
-                    fillColor: "red",
+                    color: "#047857",
+                    fillColor: "#047857",
                     fillOpacity: 0.15,
                     weight: 2,
                   }}
@@ -393,25 +399,25 @@ export default function Map({
           </MapContainer>
 
           {!position && !error && (
-            <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-white/70 backdrop-blur-sm">
+            <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-background/80 backdrop-blur-sm">
               <div className="flex flex-col items-center gap-4">
                 {/* Spinner */}
                 <div className="relative h-14 w-14">
-                  <div className="absolute inset-0 rounded-full border-4 border-emerald-100" />
+                  <div className="absolute inset-0 rounded-full border-4 border-muted" />
 
-                  <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-emerald-600" />
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary motion-safe:animate-spin" />
                 </div>
 
                 {/* Tekst */}
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-gray-800">
+                  <p className="font-semibold text-foreground">
                     Pobieranie lokalizacji
                   </p>
 
                   <div className="mt-1 flex justify-center gap-1">
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-600 [animation-delay:-0.3s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-600 [animation-delay:-0.15s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-600" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-bounce [animation-delay:-0.3s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-bounce [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-bounce" />
                   </div>
                 </div>
               </div>
@@ -419,7 +425,7 @@ export default function Map({
           )}
 
           {error && (
-            <div className="absolute top-4 left-1/2 z-[1000] -translate-x-1/2 rounded-lg bg-white px-4 py-2 text-sm shadow-lg">
+            <div role="alert" className="absolute top-4 left-1/2 z-[1000] -translate-x-1/2 rounded-2xl border bg-background px-4 py-2">
               {error}
             </div>
           )}
@@ -427,21 +433,21 @@ export default function Map({
 
         <section className="flex w-full min-w-0 flex-col gap-5 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
+            <h3 className="text-xl font-semibold text-foreground">
               Obszar działania
-            </h2>
-            <p className="text-sm text-muted-foreground">
+            </h3>
+            <p className="text-muted-foreground">
               Ustaw promień okręgu wokół wybranego punktu.
             </p>
           </div>
           <Label
             htmlFor="operation-radius"
-            className="flex justify-between text-sm font-medium text-foreground"
+            className="flex justify-between font-medium text-foreground"
           >
             Zasięg działania
             <output
               htmlFor="operation-radius"
-              className="text-right text-xs text-muted-foreground tabular-nums"
+              className="text-right text-muted-foreground tabular-nums"
             >
               {radius >= 1000
                 ? `${(radius / 1000).toLocaleString("pl-PL")} km`
@@ -456,7 +462,7 @@ export default function Map({
             step={100}
             value={radius}
             onChange={(event) => setRadius(Number(event.target.value))}
-            className="w-full accent-emerald-600"
+            className="h-11 w-full accent-primary"
             aria-valuetext={`${radius} metrów`}
           />
           <p className="text-xs text-muted-foreground">
@@ -551,7 +557,7 @@ export default function Map({
             <button
               type="button"
               onClick={() => setSelectedCenter(null)}
-              className="self-start text-sm font-medium text-primary underline-offset-4 hover:underline"
+              className="flex min-h-11 items-center self-start font-medium underline underline-offset-4"
             >
               Wróć do mojej lokalizacji
             </button>

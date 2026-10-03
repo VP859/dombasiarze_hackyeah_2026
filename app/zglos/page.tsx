@@ -4,6 +4,8 @@ import { type FormEvent, useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 import dynamic from "next/dynamic";
+import { CheckCircle2Icon } from "lucide-react";
+
 import type { OperationLocation } from "@/components/Map";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -17,12 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const Map = dynamic(
-  () => import("@/components/Map"),
-  {
-    ssr: false,
-  }
-);
+const Map = dynamic(() => import("@/components/Map"), {
+  ssr: false,
+});
 
 // Web Speech API: rozpoznawanie mowy wbudowane w przeglądarkę (Chrome, Edge, Safari).
 // TypeScript nie ma typów samego SpeechRecognition, więc wystarczy minimalny opis.
@@ -80,13 +79,8 @@ const TODAY_LOCAL = (() => {
 })()
 
 export default function Zglos() {
-  const [isRecording, setIsRecording] = useState(false);
-  const [waveformLevels, setWaveformLevels] = useState<number[]>([]);
-  const [frozenWaveformHeights, setFrozenWaveformHeights] = useState<number[] | null>(null);
-  const [hasRecording, setHasRecording] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [transcriptionError, setTranscriptionError] = useState("");
   const [reportText, setReportText] = useState("");
+  const [gmina, setGmina] = useState("");
   const [mapLocation, setMapLocation] = useState<OperationLocation | null>(null);
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [submitError, setSubmitError] = useState("");
@@ -329,14 +323,15 @@ export default function Zglos() {
   }, [isRecording, waveformLevels]);
 
   return (
-    <main>
-      <h1 className="mb-4 text-6xl font-bold">
-        Witaj!
-        <span className="text-6xl text-emerald-800">
-          {" "}
-          Na czym polega twój problem?
-        </span>
-      </h1>
+    <div className="flex flex-col gap-12">
+      <div className="flex flex-col gap-4">
+        <p className="text-sm font-semibold tracking-wider text-primary uppercase">Zgłoś problem</p>
+        <h1 className="text-4xl font-bold text-balance md:text-5xl">Na czym polega Twój problem?</h1>
+        <p className="max-w-2xl text-xl text-muted-foreground">
+          Opisz go własnymi słowami albo nagraj głosem. Pokażemy innowacje, które rozwiązały podobny
+          problem w innych gminach.
+        </p>
+      </div>
 
       <form id="report-form" onSubmit={submitReport} className="flex w-full max-w-5xl flex-col gap-5">
         <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -542,28 +537,17 @@ export default function Zglos() {
           >
             Wyślij zgłoszenie
           </Button>
+          {submitted && (
+            <Alert role="status">
+              <CheckCircle2Icon aria-hidden />
+              <AlertTitle>Zgłoszenie jest kompletne</AlertTitle>
+              <AlertDescription>
+                Wersja demonstracyjna: dane są gotowe do wysłania, ale jeszcze nie zapisujemy ich w bazie.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
-      </section>
-
-      <style jsx>{`
-        @keyframes recordingWave {
-          0%,
-          100% {
-            transform: scaleY(1);
-          }
-
-          50% {
-            transform: scaleY(1.25);
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .recording-wave-bar {
-            animation: none !important;
-            transition: none !important;
-          }
-        }
-      `}</style>
-    </main>
+      </form>
+    </div>
   );
 }

@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils"
 
 const LINKS = [
   { href: "/zglos", label: "Zgłoś problem" },
+  { href: "/kreator", label: "Zgłoś rozwiązanie" },
   { href: "/biblioteka", label: "Biblioteka" },
-  { href: "/kreator", label: "Kreator" },
   { href: "/wyzwania", label: "Wyzwania" },
 ]
 
@@ -38,11 +38,11 @@ export function SiteNav() {
 
   return (
     <>
-      <nav aria-label="Menu główne" className="hidden md:block">
+      <nav aria-label="Menu główne" className="hidden lg:block">
         <ul className="flex gap-1">{items}</ul>
       </nav>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger render={<Button variant="outline" size="icon" className="md:hidden" />}>
+        <SheetTrigger render={<Button variant="outline" size="icon" className="lg:hidden" />}>
           <MenuIcon aria-hidden />
           <span className="sr-only">Otwórz menu</span>
         </SheetTrigger>

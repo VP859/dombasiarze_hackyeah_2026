@@ -14,9 +14,9 @@ Gminy często tworzą od zera rozwiązania, które gdzie indziej już działają
 | --- | --- | --- | --- |
 | I. Matchmaking | Zgłoś problem | `/zglos`, `/zglos-zapotrzebowanie` | Zapis zgłoszenia i analiza AI działają, dopasowania wymagają embeddingów innowacji |
 | II. Zasobnik wiedzy | Biblioteka, wyzwania, strona innowacji | `/biblioteka`, `/innowacja/[id]`, `/wyzwania` | Działa (Supabase) |
-| III. Kreator pomysłów | Kreator | `/kreator`, `/kreator/[id]` | Widok poglądowy |
+| III. Kreator pomysłów | Zgłoś rozwiązanie | `/kreator`, `/kreator/[id]` | Widok poglądowy |
 | IV. Tester innowacji | Zapisy do testu, plakat z QR, opinie | `/test/[id]`, `/test/[id]/plakat` | Plakat i opinie działają, zapisy jeszcze bez bazy |
-| V. Komunikacja | Wątek z ROPS | w kreatorze | Widok poglądowy |
+| V. Komunikacja | Wątek z ROPS | w „Zgłoś rozwiązanie” | Widok poglądowy |
 | VI. Panel administratora | Panel ROPS | `/panel` | Widok poglądowy z podglądem innowacji |
 | VII. Middleman | Dostosuj do gminy | `/innowacja/[id]/gmina` | Działa (Gemini) |
 
@@ -90,7 +90,7 @@ app/
   innowacja/[id]/           strona innowacji z opiniami
   innowacja/[id]/gmina/     Dostosuj do gminy (AI)
   zglos/, zglos-zapotrzebowanie/   zgłaszanie problemu
-  kreator/                  kreator pomysłów
+  kreator/                  Zgłoś rozwiązanie (kreator pomysłów)
   test/[id]/                zapisy do testu i plakat z QR
   panel/                    Panel ROPS
   actions/                  Server Actions (Supabase, Gemini)

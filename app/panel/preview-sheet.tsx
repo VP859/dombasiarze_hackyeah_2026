@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckIcon } from "lucide-react"
+import { CalendarIcon, CheckIcon, CircleAlertIcon, InboxIcon, LightbulbIcon, UsersIcon } from "lucide-react"
 
 import { StageBadge } from "@/components/stage-badge"
 import { Button } from "@/components/ui/button"
@@ -16,11 +16,15 @@ import {
 } from "@/components/ui/sheet"
 import type { Stage } from "@/seed"
 
+import { formatDate } from "./format"
+import { Block, Chips, Facts, SectionTitle } from "./sheet-parts"
+
 export type DraftInnovation = {
   title: string
   organization: string
   stage: Stage
   source: string
+  /** ISO, np. 2026-10-03 */
   date: string
   audience: string
   problem: string
@@ -39,38 +43,29 @@ export function PreviewSheet({ item }: { item: DraftInnovation }) {
       <SheetContent className="w-full! sm:max-w-xl!">
         <SheetHeader className="pr-16">
           <StageBadge stage={item.stage} />
-          <SheetTitle className="text-2xl font-bold">{item.title}</SheetTitle>
+          <SheetTitle className="text-2xl leading-tight font-bold">{item.title}</SheetTitle>
           <SheetDescription>{item.organization}</SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-6 pb-6 text-base">
-          <dl className="grid gap-4 sm:grid-cols-3">
-            <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground">Dla kogo</dt>
-              <dd className="font-medium">{item.audience}</dd>
-            </div>
-            <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground">Źródło</dt>
-              <dd className="font-medium">{item.source}</dd>
-            </div>
-            <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground">Dodano</dt>
-              <dd className="font-medium">{item.date}</dd>
-            </div>
-          </dl>
+        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 pb-6 text-base">
+          <Facts
+            items={[
+              { icon: UsersIcon, label: "Dla kogo", value: item.audience },
+              { icon: InboxIcon, label: "Źródło", value: item.source },
+              { icon: CalendarIcon, label: "Dodano", value: formatDate(item.date) },
+            ]}
+          />
 
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xl font-semibold">Problem</h3>
+          <Block icon={CircleAlertIcon} title="Problem">
             <p>{item.problem}</p>
-          </section>
+          </Block>
 
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xl font-semibold">Rozwiązanie</h3>
+          <Block icon={LightbulbIcon} title="Rozwiązanie" accent>
             <p>{item.method}</p>
-          </section>
+          </Block>
 
           <section className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">Efekty</h3>
+            <SectionTitle>Efekty</SectionTitle>
             <ul className="flex flex-col gap-2">
               {item.effects.map((effect) => (
                 <li key={effect} className="flex gap-3">
@@ -82,12 +77,8 @@ export function PreviewSheet({ item }: { item: DraftInnovation }) {
           </section>
 
           <section className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">Potrzebne zasoby</h3>
-            <ul className="flex list-disc flex-col gap-2 pl-6">
-              {item.resources.map((resource) => (
-                <li key={resource}>{resource}</li>
-              ))}
-            </ul>
+            <SectionTitle>Potrzebne zasoby</SectionTitle>
+            <Chips items={item.resources} />
           </section>
         </div>
 
