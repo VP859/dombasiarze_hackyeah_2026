@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { getChallenges, REPORT_AUDIENCES, REPORT_ROLES } from "@/seed";
+import { getChallenges, REPORT_AUDIENCES, REPORT_ROLES, type ReportRole } from "@/seed";
 
 const Map = dynamic(() => import("@/components/Map"), {
   ssr: false,
@@ -27,7 +27,7 @@ const CHIP =
 const TAG =
   "flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-1.5 text-base has-checked:border-primary has-checked:bg-muted";
 
-export default function Zglos() {
+export function ReportForm({ defaultRole }: { defaultRole: ReportRole }) {
   const [reportText, setReportText] = useState("");
 
   const [mapLocation, setMapLocation] = useState<OperationLocation | null>(null);
@@ -147,14 +147,14 @@ export default function Zglos() {
         <FieldSet>
           <FieldLegend>Kim jesteś?</FieldLegend>
           <div className="grid gap-3 sm:grid-cols-3">
-            {REPORT_ROLES.map((role, index) => (
+            {REPORT_ROLES.map((role) => (
               <label key={role.value} className={`${CHIP} items-start py-4`}>
                 <input
                   type="radio"
                   name="author_role"
                   value={role.value}
                   required
-                  defaultChecked={index === 0}
+                  defaultChecked={role.value === defaultRole}
                   className="mt-1 size-5 shrink-0 accent-primary"
                 />
                 <span className="flex flex-col gap-1">
