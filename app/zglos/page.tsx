@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 import dynamic from "next/dynamic";
+import type { OperationLocation } from "@/components/Map";
 
 const Map = dynamic(
   () => import("@/components/Map"),
@@ -50,6 +51,8 @@ export default function Zglos() {
   const [hasRecording, setHasRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [transcriptionError, setTranscriptionError] = useState("");
+  const [reportText, setReportText] = useState("");
+  const [mapLocation, setMapLocation] = useState<OperationLocation | null>(null);
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -59,6 +62,23 @@ export default function Zglos() {
   const lastSampleAtRef = useRef(0);
   const smoothedLevelRef = useRef(0);
   const waveformViewportRef = useRef<HTMLSpanElement | null>(null);
+
+  const handleMapLocationChange = useCallback(
+    (location: OperationLocation | null) => setMapLocation(location),
+    []
+  );
+
+  const submitReport = () => {
+    if (isRecording) {
+      stopRecording();
+    }
+
+    console.log("Zgłoszenie:", {
+      text: reportText.trim(),
+      transcript: transcript.trim(),
+      location: mapLocation,
+    });
+  };
 
   const startRecording = async () => {
     const SpeechRecognition = getSpeechRecognition();
@@ -260,6 +280,8 @@ export default function Zglos() {
             type="text"
             placeholder={isRecording || hasRecording ? "" : "Wpisz swoje zgłoszenie"}
             disabled={isRecording || hasRecording}
+            value={reportText}
+            onChange={(event) => setReportText(event.target.value)}
             className="relative z-10 h-full w-full bg-transparent px-3 py-3 text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-default disabled:text-transparent"
           />
 
@@ -361,19 +383,20 @@ export default function Zglos() {
         </section>
       )}
 
-      <Button
-        onClick={() => stopRecording()}
-        variant="secondary"
-        className="mt-2 mb-4 rounded-md bg-green-700 px-6 py-3 text-white hover:bg-green-800"
-      >
-        Wyślij zgłoszenie
-      </Button>
-
-       <section className="mt-6 w-full max-w-5xl">
+       <section className="flex flex-col mt-6 w-full max-w-5xl">
         <h2 className="mb-2 text-lg font-semibold text-foreground">
           Wskaż lokalizację problemu na mapie
         </h2>
-        <Map />
+        <Map onLocationChange={handleMapLocationChange} />
+        <div className="mt-2 mb-4 flex w-full justify-end">
+          <Button
+            onClick={submitReport}
+            variant="secondary"
+            className="rounded-md bg-green-700 px-6 py-3 text-white hover:bg-green-800 mt-6"
+          >
+            Wyślij zgłoszenie
+          </Button>
+        </div>
       </section>
 
       <style jsx>{`
