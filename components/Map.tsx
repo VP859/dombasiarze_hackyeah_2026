@@ -1,6 +1,12 @@
 "use client"
 
-import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react"
+import {
+  type FormEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react"
 import {
   MapContainer,
   TileLayer,
@@ -15,7 +21,6 @@ import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { Circle } from "react-leaflet"
 import { Label } from "@/components/ui/label"
-import { Field, FieldLabel } from "@/components/ui/field"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -41,7 +46,9 @@ type GeocodedAddress = {
   building: string
 }
 
-async function reverseGeocodePosition(position: Position): Promise<GeocodedAddress> {
+async function reverseGeocodePosition(
+  position: Position
+): Promise<GeocodedAddress> {
   const response = await fetch("/api/geocode", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -107,7 +114,8 @@ function CenterOnUser({
   // useLayoutEffect: jego sprzątanie biegnie przed map.remove() w MapContainer (zwykły efekt rodzica),
   // więc zdążymy zatrzymać animację, zanim Leaflet usunie mapę.
   useLayoutEffect(() => {
-    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)")
+      .matches
 
     if (!fitBounds) {
       map.panTo([center.lat, center.lng], { animate, duration: 0.35 })
@@ -163,7 +171,9 @@ export default function Map({
 
   // Mapa ładuje się tylko w przeglądarce (ssr: false), więc navigator jest dostępny od początku.
   const [error, setError] = useState<string | null>(() =>
-    navigator.geolocation ? null : "Twoja przeglądarka nie obsługuje geolokalizacji."
+    navigator.geolocation
+      ? null
+      : "Twoja przeglądarka nie obsługuje geolokalizacji."
   )
 
   useEffect(() => {
@@ -197,7 +207,9 @@ export default function Map({
           })
           .catch(() => {
             if (requestId === locationRequestIdRef.current) {
-              setCityError("Nie udało się pobrać adresu dla Twojej lokalizacji.")
+              setCityError(
+                "Nie udało się pobrać adresu dla Twojej lokalizacji."
+              )
             }
           })
           .finally(() => {
@@ -237,7 +249,16 @@ export default function Map({
             radiusMeters: radius,
           }
     )
-  }, [onLocationChange, centerLat, centerLng, cityQuery, cityMunicipality, cityStreet, cityBuilding, radius])
+  }, [
+    onLocationChange,
+    centerLat,
+    centerLng,
+    cityQuery,
+    cityMunicipality,
+    cityStreet,
+    cityBuilding,
+    radius,
+  ])
 
   const selectMapLocation = async (nextPosition: Position) => {
     const requestId = ++locationRequestIdRef.current
@@ -337,8 +358,8 @@ export default function Map({
 
   return (
     <>
-      <div className="grid w-full max-w-7xl grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="relative isolate h-[500px] w-full min-w-0 overflow-hidden rounded-4xl ring-1 ring-foreground/10">
+      <div className="grid w-full grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="relative isolate h-[420px] w-full min-w-0 overflow-hidden rounded-2xl ring-1 ring-foreground/10">
           <MapContainer
             center={[50.0614, 19.9366]}
             zoom={13}
@@ -387,12 +408,14 @@ export default function Map({
                 eventHandlers={{
                   dragend(event) {
                     const point = event.target.getLatLng()
-                      void selectMapLocation({ lat: point.lat, lng: point.lng })
+                    void selectMapLocation({ lat: point.lat, lng: point.lng })
                   },
                 }}
               >
                 <Tooltip permanent direction="top" offset={[0, -10]}>
-                  {[cityBuilding, cityStreet].filter(Boolean).join(", ") || cityQuery || "Wybrany punkt"}
+                  {[cityBuilding, cityStreet].filter(Boolean).join(", ") ||
+                    cityQuery ||
+                    "Wybrany punkt"}
                 </Tooltip>
                 <Popup>Środek wybranego okręgu działania</Popup>
               </Marker>
@@ -416,8 +439,8 @@ export default function Map({
                   </p>
 
                   <div className="mt-1 flex justify-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-bounce [animation-delay:-0.3s]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-bounce [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary [animation-delay:-0.3s] motion-safe:animate-bounce" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary [animation-delay:-0.15s] motion-safe:animate-bounce" />
                     <span className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-bounce" />
                   </div>
                 </div>
@@ -426,29 +449,32 @@ export default function Map({
           )}
 
           {error && (
-            <div role="alert" className="absolute top-4 left-1/2 z-[1000] -translate-x-1/2 rounded-2xl border bg-background px-4 py-2">
+            <div
+              role="alert"
+              className="absolute top-4 left-1/2 z-[1000] -translate-x-1/2 rounded-2xl border bg-background px-4 py-2"
+            >
               {error}
             </div>
           )}
         </div>
 
-        <section className="flex w-full min-w-0 flex-col gap-5 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <section className="flex w-full min-w-0 flex-col gap-4 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
           <div>
-            <h3 className="text-xl font-semibold text-foreground">
+            <h3 className="text-lg font-semibold text-foreground">
               Obszar działania
             </h3>
-            <p className="text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               Ustaw promień okręgu wokół wybranego punktu.
             </p>
           </div>
           <Label
             htmlFor="operation-radius"
-            className="flex justify-between font-medium text-foreground"
+            className="flex justify-between text-sm font-medium text-foreground"
           >
             Zasięg działania
             <output
               htmlFor="operation-radius"
-              className="text-right text-muted-foreground tabular-nums"
+              className="text-right text-sm text-muted-foreground tabular-nums"
             >
               {radius >= 1000
                 ? `${(radius / 1000).toLocaleString("pl-PL")} km`
@@ -463,21 +489,23 @@ export default function Map({
             step={100}
             value={radius}
             onChange={(event) => setRadius(Number(event.target.value))}
-            className="h-11 w-full accent-primary"
+            className="h-8 w-full accent-primary"
             aria-valuetext={`${radius} metrów`}
           />
-          <p className="text-xs text-muted-foreground">
-            Kliknij mapę, aby wybrać środek okręgu. Niebieski znacznik możesz
-            przeciągnąć w inne miejsce.
-          </p>
-          <form onSubmit={searchCity} className="flex flex-col gap-3 mt-[-10px]">
+          <form
+            onSubmit={searchCity}
+            className="flex flex-col gap-3"
+          >
             <Field>
-              <FieldLabel htmlFor="input-field-miasto" className="text-sm">
+              <FieldLabel
+                htmlFor="input-field-miasto"
+                className="text-sm"
+              >
                 Miejscowość
               </FieldLabel>
               <Input
                 id="input-field-miasto"
-                className="h-9 rounded-lg text-xs text-foreground placeholder:text-xs placeholder:text-muted-foreground mt-[-10px]"
+                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 type="text"
                 placeholder="Np. Kraków"
                 value={cityQuery}
@@ -496,9 +524,11 @@ export default function Map({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="report-street" className="text-sm mt-[-10px]">Ulica</FieldLabel>
+              <FieldLabel htmlFor="report-street" className="text-sm">
+                Ulica
+              </FieldLabel>
               <Input
-               className="h-9 rounded-lg text-xs text-foreground placeholder:text-xs placeholder:text-muted-foreground mt-[-10px]"
+                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 id="report-street"
                 name="street"
                 form="report-form"
@@ -508,15 +538,19 @@ export default function Map({
                   setCityResult("")
                   setCityError("")
                 }}
-                placeholder={operationCenter ? "Brak danych ulicy w OpenStreetMap" : "Wybierz punkt na mapie"}
+                placeholder={
+                  operationCenter
+                    ? "Brak danych ulicy"
+                    : "Wybierz punkt na mapie"
+                }
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="report-building" className="text-sm mt-[-10px]">
+              <FieldLabel htmlFor="report-building" className="text-sm">
                 Numer budynku / punkt orientacyjny
               </FieldLabel>
               <Input
-               className="h-9 rounded-lg text-xs text-foreground placeholder:text-xs placeholder:text-muted-foreground mt-[-10px]"
+                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 id="report-building"
                 name="building"
                 form="report-form"
@@ -526,43 +560,34 @@ export default function Map({
                   setCityResult("")
                   setCityError("")
                 }}
-                placeholder={operationCenter ? "Brak numeru budynku w OpenStreetMap" : "Wybierz punkt na mapie"}
+                placeholder={
+                  operationCenter
+                    ? "Brak numeru budynku"
+                    : "Wybierz punkt na mapie"
+                }
               />
             </Field>
-            <Button
-              type="submit"
-              variant="default"
-              size="xs"
-              className="h-9 min-h-9 self-start rounded-lg px-3 py-1 text-xs"
-              disabled={isSearchingCity}
-            >
-              {isSearchingCity ? "Szukam…" : "Szukaj"}
-            </Button>
-            {cityResult && (
-              <div role="status" className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
-                <p className="font-medium text-foreground">{cityResult}</p>
-                <p>Miejscowość: {cityQuery || "brak danych"}</p>
-                <p>Gmina: {cityMunicipality || "brak danych w OpenStreetMap"}</p>
-                <p>Ulica: {cityStreet || "brak danych w OpenStreetMap"}</p>
-                <p>Numer budynku: {cityBuilding || "brak danych w OpenStreetMap"}</p>
-              </div>
-            )}
-            {cityError && (
-              <p role="alert" className="text-xs text-destructive">
-                {cityError}
-              </p>
-            )}
+            <div className="mt-2 flex w-full min-w-0 items-center gap-2">
+              {selectedCenter && position && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCenter(null)}
+                  className="min-h-9 shrink-0 text-sm font-medium whitespace-nowrap text-primary underline underline-offset-4 hover:text-primary/80"
+                >
+                  Wróć do mojej lokalizacji
+                </button>
+              )}
+              <Button
+                type="submit"
+                variant="default"
+                size="xs"
+                className="ml-auto flex h-9 min-h-9 shrink-0 rounded-lg px-3 py-1 text-xs"
+                disabled={isSearchingCity}
+              >
+                {isSearchingCity ? "Szukam…" : "Szukaj"}
+              </Button>
+            </div>
           </form>
-
-          {selectedCenter && position && (
-            <button
-              type="button"
-              onClick={() => setSelectedCenter(null)}
-              className="flex min-h-11 items-center self-start font-medium underline underline-offset-4"
-            >
-              Wróć do mojej lokalizacji
-            </button>
-          )}
         </section>
       </div>
     </>
