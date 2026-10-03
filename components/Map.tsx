@@ -582,12 +582,19 @@ export default function Map({
                 type="submit"
                 variant="default"
                 size="xs"
-                className="ml-auto flex h-9 min-h-9 shrink-0 rounded-lg px-3 py-1 text-xs"
+                className=" w-full! flex h-9 min-h-9 shrink-0 rounded-lg px-3 py-1 text-xs"
                 disabled={isSearchingCity}
               >
                 {isSearchingCity ? "Szukam…" : "Szukaj"}
               </Button>
             </div>
+            <p aria-live="polite" className="text-sm">
+              {cityError ? (
+                <span className="text-destructive">{cityError}</span>
+              ) : (
+                cityResult && <span className="text-muted-foreground">Znaleziono: {cityResult}</span>
+              )}
+            </p>
           </form>
         </section>
       </div>

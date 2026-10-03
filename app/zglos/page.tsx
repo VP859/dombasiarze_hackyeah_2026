@@ -1,7 +1,7 @@
 "use client";
 
 
-import { type FormEvent, useCallback, useRef, useState } from "react";
+import { type FormEvent, useCallback, useState } from "react";
 import dynamic from "next/dynamic";
 import { CheckCircle2Icon } from "lucide-react";
 
@@ -22,6 +22,10 @@ const FORM_ID = "report-form";
 
 const CHIP =
   "flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-2 has-checked:border-primary has-checked:bg-muted";
+
+// Mniejsze kafelki do zaznaczania wielu opcji — wysokość zostaje 44 px (cel dotyku).
+const TAG =
+  "flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-1.5 text-base has-checked:border-primary has-checked:bg-muted";
 
 export default function Zglos() {
   const [reportText, setReportText] = useState("");
@@ -85,13 +89,13 @@ export default function Zglos() {
           </FieldDescription>
           <div className="flex flex-wrap gap-2">
             {getChallenges().map((challenge) => (
-              <label key={challenge.id} className={CHIP}>
+              <label key={challenge.id} className={TAG}>
                 <input
                   type="checkbox"
                   name="challenge"
                   value={challenge.id}
                   form={FORM_ID}
-                  className="size-5 shrink-0 accent-primary"
+                  className="size-4 shrink-0 accent-primary"
                 />
                 {challenge.name}
               </label>
@@ -106,13 +110,13 @@ export default function Zglos() {
           </FieldDescription>
           <div className="flex flex-wrap gap-2">
             {REPORT_AUDIENCES.map((audience) => (
-              <label key={audience} className={CHIP}>
+              <label key={audience} className={TAG}>
                 <input
                   type="checkbox"
                   name="audience"
                   value={audience}
                   form={FORM_ID}
-                  className="size-5 shrink-0 accent-primary"
+                  className="size-4 shrink-0 accent-primary"
                 />
                 {audience}
               </label>
