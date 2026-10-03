@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Figtree, Inter } from "next/font/google"
 import Link from "next/link"
+import Script from "next/script"
 
 import "./globals.css"
 import { RoleSwitcher } from "@/components/role-switcher"
@@ -38,7 +39,11 @@ export default function RootLayout({
       className={cn("scroll-pt-24 font-sans antialiased", inter.variable, figtree.variable)}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: textSizeScript }} />
+        <Script
+          id="text-size-script"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: textSizeScript }}
+        />
       </head>
       <body className="flex min-h-svh flex-col">
         <ThemeProvider>
