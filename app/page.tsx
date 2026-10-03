@@ -3,7 +3,8 @@ import Link from "next/link"
 import { InnovationCard } from "@/components/innovation-card"
 import { RegionMap } from "@/components/region-map"
 import { buttonVariants } from "@/components/ui/button"
-import { getChallenges, getRating, getSolutions } from "@/seed"
+import { getReviewsForSolution, getSolutions } from "@/app/actions/solutions"
+import { getChallenges } from "@/seed"
 
 const STEPS = [
   { title: "Zgłoś", text: "Opisz problem w swojej okolicy. Wystarczy kilka zdań." },
@@ -11,15 +12,31 @@ const STEPS = [
   { title: "Wdróż w gminie", text: "Dostosuj wybrane rozwiązanie do swojej gminy i zacznij działać." },
 ]
 
-export default function Page() {
-  const solutions = getSolutions()
+// Dane z Supabase, strona odświeżana co minutę.
+export const revalidate = 60
+
+export default async function Page() {
+  const solutions = (await getSolutions().catch(() => null)) ?? []
   const proven = solutions.filter((s) => s.stage === "sprawdzona")
-  const featured = proven.slice(0, 3)
+  // Najpierw sprawdzone, resztą dopełniamy do trzech.
+  const featured = [...proven, ...solutions.filter((s) => s.stage !== "sprawdzona")].slice(0, 3)
+  // ponytail: jedno zapytanie o oceny na innowację; przy dużej bazie pobrać liczniki jednym zapytaniem.
+  const ratings = await Promise.all(
+    solutions.map((s) =>
+      getReviewsForSolution(s.id)
+        .then((reviews) => ({
+          count: reviews.length,
+          average: reviews.reduce((sum, r) => sum + r.rating, 0) / (reviews.length || 1),
+        }))
+        .catch(() => ({ count: 0, average: 0 }))
+    )
+  )
+  const ratingOf = (id: string) => ratings[solutions.findIndex((s) => s.id === id)]
   const stats = [
     { label: "Innowacje w bibliotece", value: solutions.length },
     { label: "Wyzwania społeczne", value: getChallenges().length },
     { label: "Sprawdzone w praktyce", value: proven.length },
-    { label: "Opinie użytkowników", value: solutions.reduce((n, s) => n + getRating(s.id).count, 0) },
+    { label: "Opinie użytkowników", value: ratings.reduce((n, r) => n + r.count, 0) },
   ]
 
   return (
@@ -87,7 +104,7 @@ export default function Page() {
         <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {featured.map((solution) => (
             <li key={solution.id}>
-              <InnovationCard solution={solution} />
+              <InnovationCard solution={solution} rating={ratingOf(solution.id)} />
             </li>
           ))}
         </ul>

@@ -1,8 +1,11 @@
 import type { Metadata } from "next"
-import { SearchIcon, XIcon } from "lucide-react"
+import { CircleAlertIcon, SearchIcon, XIcon } from "lucide-react"
+
+import { getReviewsForSolution, getSolutions } from "@/app/actions/solutions"
 
 import { EmptyState } from "@/components/empty-state"
 import { InnovationCard } from "@/components/innovation-card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -16,12 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { getAudiences, getChallenges, getSolutions, STAGES } from "@/seed"
+import { STAGES } from "@/seed"
 
 export const metadata: Metadata = { title: "Biblioteka innowacji" }
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? ""
 
+// Dane z Supabase (server action getSolutions): wyszukiwanie i etap filtruje baza, „Dla kogo” — strona.
+// Filtra wyzwań na razie nie ma: tabela challenges w bazie jest pusta.
 // Filtry to zwykły formularz GET: stan w URL (Select wysyła wartość ukrytym polem `name`).
 // Pasek wyszukiwania to <form id="filtry">, a listy w bocznej kolumnie należą do niego przez atrybut `form`.
 // Zwykłe <a> (nie Link) czyści filtry pełnym przeładowaniem — inaczej pola zachowałyby stare wartości.
@@ -29,16 +34,35 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
   const params = await searchParams
   const filters = {
     q: first(params.q),
-    challenge: first(params.challenge),
     audience: first(params.audience),
     stage: first(params.stage),
   }
-  const results = getSolutions(filters)
-  const challenges = getChallenges()
+
+  // null = błąd bazy lub sieci; pokazujemy komunikat zamiast wywracać stronę.
+  const solutions = await getSolutions({ search: filters.q, stage: filters.stage || undefined }).catch(
+    (error) => {
+      console.error(error)
+      return null
+    }
+  )
+  const audiences = [...new Set((solutions ?? []).flatMap((s) => (s.audience ? [s.audience] : [])))].sort(
+    (a, b) => a.localeCompare(b, "pl")
+  )
+  const results = (solutions ?? []).filter((s) => !filters.audience || s.audience === filters.audience)
+  // ponytail: jedno zapytanie o oceny na kartę; przy dużej bibliotece pobrać średnie jednym zapytaniem.
+  const ratings = await Promise.all(
+    results.map((s) =>
+      getReviewsForSolution(s.id)
+        .then((reviews) => ({
+          count: reviews.length,
+          average: reviews.reduce((sum, r) => sum + r.rating, 0) / (reviews.length || 1),
+        }))
+        .catch(() => undefined)
+    )
+  )
 
   const labels: Record<keyof typeof filters, string> = {
     q: filters.q && `„${filters.q}”`,
-    challenge: challenges.find((c) => c.id === filters.challenge)?.name ?? "",
     audience: filters.audience,
     stage: filters.stage,
   }
@@ -85,21 +109,12 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
           <CardContent>
             <FieldGroup className="gap-5">
               <FilterSelect
-                id="challenge"
-                label="Wyzwanie"
-                value={filters.challenge}
-                items={[
-                  { value: null, label: "Wszystkie wyzwania" },
-                  ...challenges.map((c) => ({ value: c.id, label: c.name })),
-                ]}
-              />
-              <FilterSelect
                 id="audience"
                 label="Dla kogo"
                 value={filters.audience}
                 items={[
                   { value: null, label: "Wszyscy odbiorcy" },
-                  ...getAudiences().map((a) => ({ value: a, label: a })),
+                  ...audiences.map((a) => ({ value: a, label: a })),
                 ]}
               />
               <FilterSelect
@@ -148,11 +163,17 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
             </ul>
           )}
 
-          {results.length ? (
+          {solutions === null ? (
+            <Alert variant="destructive">
+              <CircleAlertIcon aria-hidden />
+              <AlertTitle>Nie udało się pobrać innowacji</AlertTitle>
+              <AlertDescription>Sprawdź połączenie z internetem i odśwież stronę.</AlertDescription>
+            </Alert>
+          ) : results.length ? (
             <ul className="grid gap-6 md:grid-cols-2">
-              {results.map((solution) => (
+              {results.map((solution, i) => (
                 <li key={solution.id}>
-                  <InnovationCard solution={solution} />
+                  <InnovationCard solution={solution} rating={ratings[i]} />
                 </li>
               ))}
             </ul>

@@ -4,7 +4,7 @@ import { icons } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { getChallenges, getSolutions } from "@/seed"
+import { getChallenges } from "@/seed"
 
 export const metadata: Metadata = { title: "Wyzwania" }
 
@@ -32,7 +32,6 @@ export default function Page() {
       <ul className="divide-y border-y">
         {getChallenges().map((challenge) => {
           const Icon = icons[challenge.icon as keyof typeof icons] ?? icons.Lightbulb
-          const count = getSolutions({ challenge: challenge.id }).length
           return (
             <li
               key={challenge.id}
@@ -56,7 +55,7 @@ export default function Page() {
                 href={`/biblioteka?challenge=${challenge.id}`}
                 className={cn(buttonVariants({ variant: "secondary" }), "shrink-0 self-start md:self-center")}
               >
-                Zobacz innowacje ({count})<span className="sr-only">: {challenge.name}</span>
+                Zobacz innowacje<span className="sr-only">: {challenge.name}</span>
               </Link>
             </li>
           )
