@@ -8,6 +8,17 @@ import { getChallenges, getSolutions } from "@/seed"
 
 export const metadata: Metadata = { title: "Wyzwania" }
 
+// Kolor kwadratu z ikoną dla każdego wyzwania. Biała ikona ma na każdym kontrast ≥ 4,5:1.
+const COLORS: Record<string, string> = {
+  starzenie: "bg-amber-700",
+  "zdrowie-psychiczne": "bg-violet-600",
+  samotnosc: "bg-rose-600",
+  "wykluczenie-cyfrowe": "bg-sky-700",
+  "dostep-do-uslug": "bg-teal-700",
+  koordynacja: "bg-indigo-600",
+  "zmiany-osadnicze": "bg-orange-700",
+}
+
 export default function Page() {
   return (
     <div className="flex flex-col gap-10">
@@ -28,7 +39,14 @@ export default function Page() {
               className="flex flex-col gap-4 py-6 md:flex-row md:items-center md:justify-between"
             >
               <div className="flex gap-4">
-                <Icon aria-hidden className="mt-1 size-6 shrink-0 text-muted-foreground" />
+                <span
+                  className={cn(
+                    "flex size-12 shrink-0 items-center justify-center rounded-xl text-white",
+                    COLORS[challenge.id] ?? "bg-primary"
+                  )}
+                >
+                  <Icon aria-hidden className="size-6" />
+                </span>
                 <div className="flex max-w-2xl flex-col gap-1">
                   <h2 className="text-xl font-semibold">{challenge.name}</h2>
                   <p className="text-muted-foreground">{challenge.summary}</p>

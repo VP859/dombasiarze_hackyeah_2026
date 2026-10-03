@@ -1,9 +1,14 @@
-﻿"use client"
+"use client"
 
 import { FormEvent, useState } from "react"
-import { Star } from "lucide-react"
+import { CheckCircle2Icon, StarIcon } from "lucide-react"
 
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
+import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 
 type RatingFormProps = {
   onSubmit?: (rating: number, opinion: string, improvement: string) => void
@@ -27,92 +32,74 @@ export function RatingForm({ onSubmit }: RatingFormProps) {
   }
 
   return (
-    <section
-      aria-labelledby="rating-heading"
-      className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8 dark:border-stone-800 dark:bg-stone-900"
-    >
-      <h2 id="rating-heading" className="text-2xl font-semibold tracking-tight">
-        Oceń tę innowację
-      </h2>
-      <p className="mt-2 text-stone-600 dark:text-stone-300">
-        Twoja opinia pomoże ją lepiej rozwijać.
-      </p>
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h2>Oceń tę innowację</h2>
+        </CardTitle>
+        <CardDescription>Twoja opinia pomoże ją lepiej rozwijać.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {submitted ? (
+          <Alert role="status">
+            <CheckCircle2Icon aria-hidden />
+            <AlertDescription>Dziękujemy za opinię.</AlertDescription>
+          </Alert>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+            <FieldGroup>
+              <FieldSet>
+                <FieldLegend>Ocena</FieldLegend>
+                <div className="flex flex-wrap gap-1">
+                  {Array.from({ length: 5 }, (_, index) => {
+                    const value = index + 1
+                    const selected = value <= rating
 
-      {submitted ? (
-        <p
-          className="mt-6 rounded-2xl border border-emerald-700 bg-emerald-50 p-4 leading-7 text-emerald-950 dark:border-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-100"
-          role="status"
-          aria-live="polite"
-        >
-          Dziękujemy za opinię.
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-          <fieldset>
-            <legend className="mb-3 font-medium">Ocena</legend>
-            <div className="flex flex-wrap gap-1" role="group" aria-label="Wybierz ocenę od 1 do 5">
-              {Array.from({ length: 5 }, (_, index) => {
-                const value = index + 1
-                const selected = value <= rating
+                    return (
+                      <Button
+                        key={value}
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`${value} ${value === 1 ? "gwiazdka" : value < 5 ? "gwiazdki" : "gwiazdek"}`}
+                        aria-pressed={value === rating}
+                        onClick={() => setRating(value)}
+                      >
+                        <StarIcon aria-hidden className={cn("size-7", selected && "fill-current")} />
+                      </Button>
+                    )
+                  })}
+                </div>
+                {rating === 0 && <FieldDescription>Wybierz ocenę, aby wysłać formularz.</FieldDescription>}
+              </FieldSet>
 
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-amber-500 outline-none transition-colors hover:bg-amber-50 focus-visible:ring-3 focus-visible:ring-emerald-700/40 dark:hover:bg-amber-950/40"
-                    aria-label={`${value} ${value === 1 ? "gwiazdka" : "gwiazdki"}`}
-                    aria-pressed={selected}
-                    onClick={() => setRating(value)}
-                  >
-                    <Star
-                      aria-hidden="true"
-                      className="size-7"
-                      fill={selected ? "currentColor" : "none"}
-                    />
-                  </button>
-                )
-              })}
-            </div>
-            {rating === 0 && (
-              <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
-                Wybierz ocenę, aby wysłać formularz.
-              </p>
-            )}
-          </fieldset>
+              <Field>
+                <FieldLabel htmlFor="opinion">Opinia</FieldLabel>
+                <Textarea
+                  id="opinion"
+                  name="opinion"
+                  value={opinion}
+                  onChange={(event) => setOpinion(event.target.value)}
+                />
+              </Field>
 
-          <div>
-            <label htmlFor="opinion" className="mb-2 block font-medium">
-              Opinia
-            </label>
-            <textarea
-              id="opinion"
-              name="opinion"
-              value={opinion}
-              onChange={(event) => setOpinion(event.target.value)}
-              rows={4}
-              className="w-full resize-y rounded-xl border border-stone-400 bg-white px-4 py-3 text-base outline-none focus-visible:border-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-700/30 dark:border-stone-600 dark:bg-stone-950"
-            />
-          </div>
+              <Field>
+                <FieldLabel htmlFor="improvement">Co poprawić?</FieldLabel>
+                <Textarea
+                  id="improvement"
+                  name="improvement"
+                  value={improvement}
+                  onChange={(event) => setImprovement(event.target.value)}
+                />
+              </Field>
+            </FieldGroup>
 
-          <div>
-            <label htmlFor="improvement" className="mb-2 block font-medium">
-              Co poprawić?
-            </label>
-            <textarea
-              id="improvement"
-              name="improvement"
-              value={improvement}
-              onChange={(event) => setImprovement(event.target.value)}
-              rows={4}
-              className="w-full resize-y rounded-xl border border-stone-400 bg-white px-4 py-3 text-base outline-none focus-visible:border-emerald-700 focus-visible:ring-3 focus-visible:ring-emerald-700/30 dark:border-stone-600 dark:bg-stone-950"
-            />
-          </div>
-
-          <Button type="submit" size="lg" className="min-h-11">
-            Wyślij opinię
-          </Button>
-        </form>
-      )}
-    </section>
+            <Button type="submit" size="lg" className="self-start">
+              Wyślij opinię
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
   )
 }

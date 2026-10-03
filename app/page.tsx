@@ -1,8 +1,9 @@
 import Link from "next/link"
 
 import { InnovationCard } from "@/components/innovation-card"
+import { RegionMap } from "@/components/region-map"
 import { buttonVariants } from "@/components/ui/button"
-import { getSolutions } from "@/seed"
+import { getChallenges, getRating, getSolutions } from "@/seed"
 
 const STEPS = [
   { title: "Zgłoś", text: "Opisz problem w swojej okolicy. Wystarczy kilka zdań." },
@@ -11,29 +12,55 @@ const STEPS = [
 ]
 
 export default function Page() {
-  const featured = getSolutions({ stage: "sprawdzona" }).slice(0, 3)
+  const solutions = getSolutions()
+  const proven = solutions.filter((s) => s.stage === "sprawdzona")
+  const featured = proven.slice(0, 3)
+  const stats = [
+    { label: "Innowacje w bibliotece", value: solutions.length },
+    { label: "Wyzwania społeczne", value: getChallenges().length },
+    { label: "Sprawdzone w praktyce", value: proven.length },
+    { label: "Opinie użytkowników", value: solutions.reduce((n, s) => n + getRating(s.id).count, 0) },
+  ]
 
   return (
     <div className="flex flex-col gap-16">
-      <section className="flex flex-col gap-6 py-6">
-        <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-balance md:text-5xl">
-          Nie wymyślaj koła na nowo — podaj dalej
-        </h1>
-        <p className="max-w-2xl text-xl text-muted-foreground">
-          Znajdź sprawdzone innowacje społeczne z Małopolski i wdróż je w swojej gminie.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Link href="/zglos" className={buttonVariants({ size: "lg" })}>
-            Zgłoś problem
-          </Link>
-          <Link href="/biblioteka" className={buttonVariants({ size: "lg", variant: "secondary" })}>
-            Przeglądaj innowacje
-          </Link>
-          <Link href="/kreator" className={buttonVariants({ size: "lg", variant: "secondary" })}>
-            Mam pomysł
-          </Link>
+      <section className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
+        <div className="flex flex-col gap-6">
+          <p className="font-medium text-muted-foreground">Małopolski Hub Innowacji Społecznych</p>
+          <h1 className="text-4xl leading-[1.05] font-bold tracking-tight text-balance md:text-6xl">
+            Nie wymyślaj koła na nowo — podaj dalej
+          </h1>
+          <p className="max-w-xl text-xl text-muted-foreground">
+            Znajdź sprawdzone innowacje społeczne z Małopolski i wdróż je w swojej gminie.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/zglos" className={buttonVariants({ size: "lg" })}>
+              Zgłoś problem
+            </Link>
+            <Link href="/biblioteka" className={buttonVariants({ size: "lg", variant: "secondary" })}>
+              Przeglądaj innowacje
+            </Link>
+            <Link href="/kreator" className={buttonVariants({ size: "lg", variant: "secondary" })}>
+              Mam pomysł
+            </Link>
+          </div>
         </div>
+        <figure className="flex flex-col gap-3">
+          <RegionMap className="mx-auto w-full max-w-lg" />
+          <figcaption className="text-center text-muted-foreground">
+            Pomysł sprawdzony w jednej gminie przechodzi do kolejnych.
+          </figcaption>
+        </figure>
       </section>
+
+      <dl className="grid grid-cols-2 gap-6 border-y py-8 md:grid-cols-4">
+        {stats.map((stat) => (
+          <div key={stat.label} className="flex flex-col-reverse gap-1">
+            <dt className="text-muted-foreground">{stat.label}</dt>
+            <dd className="font-heading text-4xl font-semibold tracking-tight">{stat.value}</dd>
+          </div>
+        ))}
+      </dl>
 
       <section className="flex flex-col gap-6">
         <h2 className="text-3xl font-bold">Jak to działa</h2>
