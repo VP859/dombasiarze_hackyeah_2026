@@ -41,7 +41,7 @@ Opis zgłoszenia:
 "${description}"`
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite",
     contents: prompt,
     config: {
       systemInstruction:
@@ -101,7 +101,7 @@ export async function generateRopsCanvas(
   audience: string
 ): Promise<CanvasData> {
   const ai = createAiClient()
-  const prompt = `Przekształć poniższy pomysł w ustrukturyzowaną Canwę Innowacji ROPS:
+  const prompt = `Przekształć poniższy pomysł w ustrukturyzowaną Kanwę Innowacji ROPS:
 
 Tytuł: ${title}
 Istota pomysłu: ${essence}

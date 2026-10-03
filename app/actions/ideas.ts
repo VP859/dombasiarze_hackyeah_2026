@@ -28,7 +28,7 @@ export async function saveIdeaAction(input: SaveIdeaInput) {
     .single()
 
   if (error) {
-    console.error('Błąd zapisu pomysłu:', error)
+    console.error('Błąd zapisu w Supabase:', error)
     throw new Error(error.message)
   }
 
