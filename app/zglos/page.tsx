@@ -9,6 +9,9 @@ export default function Zglos() {
   const [waveformLevels, setWaveformLevels] = useState<number[]>([]);
   const [frozenWaveformHeights, setFrozenWaveformHeights] = useState<number[] | null>(null);
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
+  const [transcript, setTranscript] = useState("");
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcriptionError, setTranscriptionError] = useState("");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -30,6 +33,9 @@ export default function Zglos() {
       setWaveformLevels([]);
       setFrozenWaveformHeights(null);
       setRecordedAudio(null);
+      setTranscript("");
+      setTranscriptionError("");
+      setIsTranscribing(false);
       lastSampleAtRef.current = 0;
       smoothedLevelRef.current = 0;
 
@@ -45,12 +51,53 @@ export default function Zglos() {
         }
       };
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const audioBlob = new Blob(chunksRef.current, {
           type: recorder.mimeType,
         });
 
         setRecordedAudio(audioBlob);
+        setIsTranscribing(true);
+
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recording.webm");
+
+        try {
+          const response = await fetch("/api/transcribe", {
+            method: "POST",
+            body: formData,
+          });
+          const responseText = await response.text();
+          let result: {
+            transcript?: string;
+            error?: string;
+          };
+
+          try {
+            if (!responseText.trim()) {
+              throw new Error("Pusta odpowiedź serwera.");
+            }
+            result = JSON.parse(responseText) as typeof result;
+          } catch {
+            throw new Error(
+              `Serwer transkrypcji zwrócił nieprawidłową odpowiedź (HTTP ${response.status}).`
+            );
+          }
+
+          if (!response.ok) {
+            throw new Error(result.error || "Transkrypcja nie powiodła się.");
+          }
+
+          setTranscript(result.transcript || "Nie rozpoznano mowy w nagraniu.");
+        } catch (error) {
+          setTranscriptionError(
+            error instanceof Error
+              ? error.message
+              : "Nie udało się przygotować transkrypcji nagrania."
+          );
+        } finally {
+          setIsTranscribing(false);
+        }
       };
 
       recorder.start();
@@ -286,6 +333,21 @@ export default function Zglos() {
           </span>
         </Button>
       </div>
+
+      {(recordedAudio || isTranscribing || transcript || transcriptionError) && (
+        <section
+          className="mt-3 w-full max-w-5xl rounded-md border border-border bg-muted p-3"
+          role="status"
+          aria-live="polite"
+        >
+          <h2 className="text-sm font-semibold text-foreground">Transkrypcja nagrania</h2>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+            {isTranscribing
+              ? "Przygotowuję transkrypcję…"
+              : transcriptionError || transcript || "Nie rozpoznano mowy w nagraniu."}
+          </p>
+        </section>
+      )}
 
       <Button
         onClick={() => stopRecording()}
