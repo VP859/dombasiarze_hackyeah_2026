@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+
+@plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -119,16 +119,16 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-lg text-foreground;
-    }
+  }
   h1, h2, h3 {
     @apply font-heading;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
 }
 
 .voice-chat-icon {
