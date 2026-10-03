@@ -47,7 +47,6 @@ function PublishButton({ id, title }: { id?: string; title: string }) {
     </Button>
   )
 }
-
 const verifyColumns: Column<DraftInnovation>[] = [
   {
     id: "title",
@@ -157,3 +156,4 @@ export function CallsTable({ calls }: { calls: Call[] }) {
     />
   )
 }
+

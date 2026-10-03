@@ -56,7 +56,7 @@ export type Need = {
   audiences: string[]
   status: NeedStatus
   matches: number
-  /** ISO, np. 2026-10-03 */
+  /** ISO, np. 2026-10-03 — sortuje się poprawnie, wyświetlamy przez formatDate. */
   date: string
   email: string
 }
@@ -85,7 +85,6 @@ export function NeedsPanel({
   const [audience, setAudience] = useState<string | null>(null)
   const [role, setRole] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
-
   const challengeName = (id: string) =>
     challenges.find((c) => c.id === id)?.name ?? id
   const query = q.trim().toLocaleLowerCase("pl")
