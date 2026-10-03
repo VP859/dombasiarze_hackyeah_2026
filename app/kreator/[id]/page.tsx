@@ -1,21 +1,13 @@
-﻿import type { Metadata } from "next"
+import type { Metadata } from "next"
 
 import { IdeaDevelopment } from "./idea-development"
 
-type IdeaPageProps = {
-  params: Promise<{ id: string }>
+export const metadata: Metadata = {
+  title: "Rozwijanie pomysłu",
+  description: "Rozwiń pomysł na innowację społeczną z pomocą asystenta.",
 }
 
-export async function generateMetadata({ params }: IdeaPageProps): Promise<Metadata> {
-  const { id } = await params
-
-  return {
-    title: `Rozwijanie pomysłu ${id}`,
-    description: "Rozwiń pomysł na innowację społeczną z pomocą asystenta.",
-  }
-}
-
-export default async function IdeaPage({ params }: IdeaPageProps) {
+export default async function IdeaPage({ params }: PageProps<"/kreator/[id]">) {
   const { id } = await params
 
   return <IdeaDevelopment ideaId={id} />

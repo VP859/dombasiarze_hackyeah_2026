@@ -19,7 +19,6 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       outputDimensionality: 768, 
     },
   });
-
   const embeddingValues = response.embeddings?.[0]?.values
 
   if (!Array.isArray(embeddingValues)) {
