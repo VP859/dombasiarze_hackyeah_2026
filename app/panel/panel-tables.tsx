@@ -1,15 +1,19 @@
 "use client"
 
+import { useTransition } from "react"
 import { DataTable, type Column } from "@/components/data-table"
 import { StageBadge } from "@/components/stage-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { STAGES } from "@/seed"
+import { publishInnovationAction } from "@/app/actions/rops-panel-actions"
+import { Loader2 } from "lucide-react"
 
 import { formatDate } from "./format"
 import { PreviewSheet, type DraftInnovation } from "./preview-sheet"
 
 export type Call = {
+  id?: string
   title: string
   /** ISO, np. 2026-11-30 */
   deadline: string
@@ -17,6 +21,32 @@ export type Call = {
   open: boolean
 }
 
+function PublishButton({ id, title }: { id?: string; title: string }) {
+  const [isPending, startTransition] = useTransition()
+
+  const handlePublish = () => {
+    if (!id) return
+    startTransition(async () => {
+      try {
+        await publishInnovationAction(id)
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Błąd publikacji")
+      }
+    })
+  }
+
+  return (
+    <Button
+      type="button"
+      size="sm"
+      disabled={isPending || !id}
+      onClick={handlePublish}
+    >
+      {isPending ? <Loader2 className="size-4 animate-spin" /> : "Opublikuj"}
+      <span className="sr-only">: {title}</span>
+    </Button>
+  )
+}
 const verifyColumns: Column<DraftInnovation>[] = [
   {
     id: "title",
@@ -57,9 +87,7 @@ const verifyColumns: Column<DraftInnovation>[] = [
     cell: (item) => (
       <div className="flex justify-end gap-2">
         <PreviewSheet item={item} />
-        <Button type="button" size="sm">
-          Opublikuj<span className="sr-only">: {item.title}</span>
-        </Button>
+        <PublishButton id={item.id} title={item.title} />
       </div>
     ),
   },
@@ -70,7 +98,7 @@ export function VerifyTable({ items }: { items: DraftInnovation[] }) {
     <DataTable
       rows={items}
       columns={verifyColumns}
-      getRowId={(item) => item.title}
+      getRowId={(item) => item.id || item.title}
       caption="Innowacje do weryfikacji"
       initialSort={{ id: "date", dir: "desc" }}
     />
@@ -122,9 +150,10 @@ export function CallsTable({ calls }: { calls: Call[] }) {
     <DataTable
       rows={calls}
       columns={callColumns}
-      getRowId={(call) => call.title}
+      getRowId={(call) => call.id || call.title}
       caption="Nabory"
       initialSort={{ id: "deadline", dir: "desc" }}
     />
   )
 }
+

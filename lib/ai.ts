@@ -105,7 +105,7 @@ export async function generateRopsCanvas(
 
 Tytuł: ${title}
 Istota pomysłu: ${essence}
-Grupa docelowa: ${audience || 'Nieokreślona dokładnie'}`
+Grupa docelowa: ${audience || "Nieokreślona dokładnie"}`
 
   const response = await ai.models.generateContent({
     model: "gemini-3.1-flash-lite",
@@ -211,12 +211,15 @@ REGULAMIN NABORU:
             items: {
               type: Type.OBJECT,
               properties: {
-                item: { type: Type.STRING, description: 'Kategoria wydatku' },
-                estimated_cost_pln: { type: Type.NUMBER, description: 'Szacowany koszt w PLN' },
+                item: { type: Type.STRING, description: "Kategoria wydatku" },
+                estimated_cost_pln: {
+                  type: Type.NUMBER,
+                  description: "Szacowany koszt w PLN",
+                },
               },
-              required: ['item', 'estimated_cost_pln'],
+              required: ["item", "estimated_cost_pln"],
             },
-            description: 'Szacunkowy kosztorys działania',
+            description: "Szacunkowy kosztorys działania",
           },
           sustainability_plan: {
             type: Type.STRING,
@@ -240,4 +243,92 @@ REGULAMIN NABORU:
   }
 
   return JSON.parse(response.text) as GrantApplicationContent
+}
+
+export interface SolutionDraft {
+  title: string
+  summary: string
+  full_description: string
+  target_group: string
+  spatial_scope: string
+  key_benefits: string[]
+  implementation_steps: string[]
+}
+
+export async function generateSolutionCard(
+  sourceType: "idea" | "application",
+  title: string,
+  content: string,
+  extraContext?: string
+): Promise<SolutionDraft> {
+  const ai = createAiClient()
+  const prompt = `Jesteś ekspertem ROPS (Regionalnego Ośrodka Polityki Społecznej) w Krakowie.
+Twoim zadaniem jest przekształcenie ${sourceType === "idea" ? "fiszki pomysłu" : "wniosku grantowego"} w ustrukturyzowaną Kartę Rozwiązania dla Biblioteki Innowacji ("Podaj Dalej").
+
+DANE ŹRÓDŁOWE:
+- Tytuł: ${title}
+- Treść zgłoszenia: ${content}
+${extraContext ? `- Kontekst dodatkowy: ${extraContext}` : ""}`
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3.1-flash-lite",
+    contents: prompt,
+    config: {
+      systemInstruction:
+        "Tworzysz profesjonalne karty innowacji społecznych w języku polskim. Odpowiadaj wyłącznie w formacie JSON zgodnym ze schematem.",
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          title: {
+            type: Type.STRING,
+            description: "Chwytliwy i profesjonalny tytuł innowacji",
+          },
+          summary: {
+            type: Type.STRING,
+            description: "Skrócony opis (max 300 znaków)",
+          },
+          full_description: {
+            type: Type.STRING,
+            description: "Szczegółowy opis działania innowacji",
+          },
+          target_group: {
+            type: Type.STRING,
+            description: "Główni beneficjenci / grupa docelowa",
+          },
+          spatial_scope: {
+            type: Type.STRING,
+            description:
+              "Zasięg wdrożenia (np. Gmina, Powiat, Cała Małopolska)",
+          },
+          key_benefits: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "Lista 3-5 kluczowych korzyści społecznych",
+          },
+          implementation_steps: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description:
+              "Krok po kroku instrukcja wdrożenia innowacji dla innych podmiotów",
+          },
+        },
+        required: [
+          "title",
+          "summary",
+          "full_description",
+          "target_group",
+          "spatial_scope",
+          "key_benefits",
+          "implementation_steps",
+        ],
+      },
+    },
+  })
+
+  if (!response.text) {
+    throw new Error("Brak odpowiedzi z modeli Gemini API.")
+  }
+
+  return JSON.parse(response.text) as SolutionDraft
 }

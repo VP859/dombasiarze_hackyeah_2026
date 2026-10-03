@@ -1,6 +1,7 @@
 "use client";
 
-import { type FormEvent, useCallback, useState } from "react";
+
+import { type FormEvent, useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CheckCircle2Icon } from "lucide-react";
 
@@ -32,7 +33,6 @@ export default function Zglos() {
     (location: OperationLocation | null) => setMapLocation(location),
     []
   );
-
   // ponytail: na razie tylko log — zapis do bazy z analizą AI to processNeedAction (app/actions/matchmaking.ts).
   const submitReport = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,7 +41,7 @@ export default function Zglos() {
       description: reportText.trim(),
       challenges: data.getAll("challenge"),
       audiences: data.getAll("audience"),
-      gmina: mapLocation?.municipality.trim() ?? "",
+      gmina: gmina.trim(),
       author_role: data.get("author_role"),
       author_email: data.get("author_email"),
       location: mapLocation,
