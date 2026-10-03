@@ -3,6 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const Map = dynamic(
+  () => import("@/components/Map"),
+  {
+    ssr: false,
+  }
+);
 
 export default function Zglos() {
   const [isRecording, setIsRecording] = useState(false);
@@ -352,10 +360,17 @@ export default function Zglos() {
       <Button
         onClick={() => stopRecording()}
         variant="secondary"
-        className="mt-2 rounded-md bg-green-700 px-6 py-3 text-white hover:bg-green-800"
+        className="mt-2 mb-4 rounded-md bg-green-700 px-6 py-3 text-white hover:bg-green-800"
       >
         Wyślij zgłoszenie
       </Button>
+
+       <section className="mt-6 w-full max-w-5xl">
+        <h2 className="mb-2 text-lg font-semibold text-foreground">
+          Wskaż lokalizację problemu na mapie
+        </h2>
+        <Map />
+      </section>
 
       <style jsx>{`
         @keyframes recordingWave {
