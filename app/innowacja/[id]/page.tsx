@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { cookies } from "next/headers"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { cache } from "react"
@@ -18,10 +19,22 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
+import { ROLE_COOKIE, ROLE_VIEW, toRole, type InnovationAction } from "@/lib/role"
 import { cn } from "@/lib/utils"
 
 // Jedno zapytanie na żądanie, choć używają go i metadata, i strona.
 const getSolution = cache(getSolutionById)
+
+// Przyciski w panelu bocznym — które i w jakiej kolejności, zależy od roli (lib/role.ts).
+const actionLink = (id: string, action: InnovationAction) =>
+  ({
+    gmina: { href: `/innowacja/${id}/gmina`, label: "Dostosuj do mojej gminy" },
+    test: { href: `/test/${id}`, label: "Zgłoś się do testu" },
+    plakat: { href: `/test/${id}/plakat`, label: "Zorganizuj test: plakat z kodem QR" },
+    opinia: { href: "#opinia", label: "Oceń innowację" },
+    kreator: { href: "/kreator", label: "Mam podobny pomysł" },
+    panel: { href: "/panel", label: "Sprawdź w Panelu ROPS" },
+  })[action]
 
 // ponytail: dzielenie tekstu z bazy na punkty; gdy backend da tablice, użyć ich wprost.
 const sentences = (text: string) => text.split(/(?<=\.)\s+/).map((s) => s.replace(/\.$/, ""))
@@ -47,6 +60,8 @@ export default async function Page({ params }: PageProps<"/innowacja/[id]">) {
   if (!solution) notFound()
 
   const reviews = await getReviewsForSolution(id).catch(() => [])
+  const role = toRole((await cookies()).get(ROLE_COOKIE)?.value)
+  const expert = role === "expert"
   const rating = {
     count: reviews.length,
     average: reviews.reduce((sum, r) => sum + r.rating, 0) / (reviews.length || 1),
@@ -105,18 +120,18 @@ export default async function Page({ params }: PageProps<"/innowacja/[id]">) {
             )}
           </dl>
           <div className="flex flex-col gap-3">
-            <Link
-              href={`/innowacja/${solution.id}/gmina`}
-              className={cn(buttonVariants({ size: "lg" }), "w-full")}
-            >
-              Dostosuj do mojej gminy
-            </Link>
-            <Link
-              href={`/test/${solution.id}`}
-              className={cn(buttonVariants({ size: "lg", variant: "outline" }), "w-full")}
-            >
-              Zgłoś się do testu
-            </Link>
+            {ROLE_VIEW[role].innovation.map((action, i) => {
+              const { href, label } = actionLink(solution.id, action)
+              return (
+                <Link
+                  key={action}
+                  href={href}
+                  className={cn(buttonVariants({ size: "lg", variant: i ? "outline" : "default" }), "w-full")}
+                >
+                  {action === "opinia" && expert ? "Dodaj opinię eksperta" : label}
+                </Link>
+              )
+            })}
           </div>
         </aside>
 
@@ -205,12 +220,16 @@ export default async function Page({ params }: PageProps<"/innowacja/[id]">) {
             )}
 
             {/* Akcja serwera: działa też bez JS, po wysłaniu strona odświeża listę opinii. */}
-            <Card>
+            <Card id="opinia" className="scroll-mt-28">
               <CardHeader>
                 <CardTitle>
-                  <h3>Dodaj opinię</h3>
+                  <h3>{expert ? "Opinia eksperta" : "Dodaj opinię"}</h3>
                 </CardTitle>
-                <CardDescription>Podziel się tym, jak innowacja sprawdziła się w praktyce.</CardDescription>
+                <CardDescription>
+                  {expert
+                    ? "Oceń, czy tę innowację warto wdrażać w innych gminach. Twoja ocena pomoże samorządom wybrać."
+                    : "Podziel się tym, jak innowacja sprawdziła się w praktyce."}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <form action={addReview} className="flex flex-col gap-8">
