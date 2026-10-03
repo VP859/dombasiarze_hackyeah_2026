@@ -13,18 +13,20 @@ function createAiClient() {
 export async function generateEmbedding(text: string): Promise<number[]> {
   const ai = createAiClient()
   const response = await ai.models.embedContent({
-    model: 'gemini-embedding-001', 
+    model: 'gemini-embedding-001',
     contents: text,
+    config: {
+      outputDimensionality: 768, 
+    },
   });
+  const embeddingValues = response.embeddings?.[0]?.values
 
-  const values = response.embeddings?.[0]?.values
-  if (!values) {
-    throw new Error('Nie udało się wygenerować wektora embedding.');
+  if (!Array.isArray(embeddingValues)) {
+    throw new Error("Nie udało się wygenerować wektora embedding.")
   }
 
-  return values;
+  return embeddingValues
 }
-
 
 export async function analyzeNeed(
   description: string,
@@ -81,32 +83,4 @@ Opis zgłoszenia:
   }
 
   return JSON.parse(response.text) as MatchmakingAnalysis
-}
-
-export async function transcribeAudio(audio: Blob): Promise<string> {
-  const ai = createAiClient()
-  const data = Buffer.from(await audio.arrayBuffer()).toString("base64")
-  const mimeType = audio.type.split(";")[0] || "audio/webm"
-
-  const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite",
-    contents: [
-      {
-        inlineData: {
-          data,
-          mimeType,
-        },
-      },
-      {
-        text: "Rozpoznaj całą wypowiedź. Zapisz po polsku wszystko, co da się usłyszeć: wypowiedzi w innych językach wiernie przetłumacz na naturalny język polski, a polskie wypowiedzi transkrybuj bez zmiany ich znaczenia. Zachowaj imiona, nazwy własne i liczby, dodaj poprawną interpunkcję. Nie zgaduj niezrozumiałych fragmentów. Zwróć wyłącznie polski tekst, bez komentarzy, etykiet i opisów. Jeśli nie słychać mowy, zwróć pusty tekst.",
-      },
-    ],
-    config: {
-      temperature: 0,
-      systemInstruction:
-        "Jesteś dokładnym transkrybentem i tłumaczem. Priorytetem jest zgodność ze słyszaną treścią. Wynik zawsze musi być po polsku.",
-    },
-  })
-
-  return response.text?.trim() ?? ""
 }
