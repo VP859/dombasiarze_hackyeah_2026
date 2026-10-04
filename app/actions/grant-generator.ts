@@ -56,18 +56,15 @@ export async function generateAndSaveGrantApplication(
   let targetCallTitle = 'Małopolskie Innowacje Społeczne 2026'
   let targetCallRules = 'Dofinansowanie do 50 000 PLN na pilotaż rozwiązań społecznych.'
 
-  if (isValidUuid(callId)) {
-    const { data: existingCall } = await supabaseAdmin
-      .from('calls')
-      .select('*')
-      .eq('id', callId)
-      .maybeSingle()
+  const { data: existingCall } = isValidUuid(callId)
+    ? await supabaseAdmin.from('calls').select('*').eq('id', callId).maybeSingle()
+    : { data: null }
 
-    if (existingCall) {
-      targetCallTitle = existingCall.title
-      targetCallRules = existingCall.rules
-    }
+  if (existingCall) {
+    targetCallTitle = existingCall.title
+    targetCallRules = existingCall.rules
   } else {
+    // Brak naboru o tym id — bierzemy istniejący, żeby wniosek nie trafił do nieistniejącego naboru.
     const { data: firstCall } = await supabaseAdmin
       .from('calls')
       .select('*')
