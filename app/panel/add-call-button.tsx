@@ -1,32 +1,111 @@
 "use client"
 
-import { useTransition } from "react"
-import { PlusIcon, Loader2 } from "lucide-react"
+import React, { useState, useTransition } from "react"
+import { PlusIcon } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
-import { createCallAction } from "@/app/actions/rops-panel-actions"
+import { Input } from "@/components/ui/input"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { createCallAction } from "@/app/actions/calls-actions"
 
 export function AddCallButton() {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState("")
+  const [deadline, setDeadline] = useState("")
   const [isPending, startTransition] = useTransition()
 
-  const handleAddCall = () => {
-    const title = prompt("Podaj tytuł nowego naboru:")
-    if (!title) return
-    const deadline = prompt("Podaj termin składania wniosków (YYYY-MM-DD):", "2026-12-31")
-    if (!deadline) return
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!title.trim() || !deadline) return
 
     startTransition(async () => {
       try {
-        await createCallAction(title, deadline)
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Błąd tworzenia naboru")
+        await createCallAction({ title, deadline })
+        setTitle("")
+        setDeadline("")
+        setOpen(false)
+      } catch (err: unknown) {
+        alert((err as { message: string }).message || "Błąd dodawania naboru")
       }
     })
   }
 
   return (
-    <Button type="button" onClick={handleAddCall} disabled={isPending}>
-      {isPending ? <Loader2 aria-hidden className="size-4 motion-safe:animate-spin" /> : <PlusIcon data-icon="inline-start" aria-hidden />}
-      Dodaj nabór
-    </Button>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
+        render={
+          <Button type="button">
+            <PlusIcon data-icon="inline-start" aria-hidden />
+            Dodaj nabór
+          </Button>
+        }
+      />
+      <SheetContent className="w-full! sm:max-w-md!">
+        <SheetHeader>
+          <SheetTitle className="text-xl font-bold">
+            Nowy Nabór Grantowy
+          </SheetTitle>
+          <SheetDescription>
+            Wprowadź szczegóły nowego konkursu dla innowatorów.
+          </SheetDescription>
+        </SheetHeader>
+
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-1 flex-col gap-5 py-6"
+        >
+          <div className="flex flex-col gap-2">
+            <label htmlFor="call-title" className="text-sm font-semibold">
+              Nazwa naboru <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="call-title"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="np. Małopolskie Innowacje Społeczne 2026"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="call-deadline" className="text-sm font-semibold">
+              Termin składania wniosków <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="call-deadline"
+              type="date"
+              required
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
+          </div>
+
+          <SheetFooter className="mt-auto border-t pt-4">
+            <SheetClose
+              render={
+                <Button type="button" variant="outline">
+                  Anuluj
+                </Button>
+              }
+            />
+            <Button
+              type="submit"
+              disabled={isPending || !title.trim() || !deadline}
+            >
+              {isPending ? "Zapisywanie..." : "Utwórz nabór"}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
   )
 }
