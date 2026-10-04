@@ -10,12 +10,17 @@ const STAGE = {
 } as const
 
 export function StageBadge({ stage }: { stage: Stage }) {
-  const { label, variant, icon: Icon } = STAGE[stage]
+  const stageConfig = STAGE[stage]
+
+  if (!stageConfig) {
+    return null
+  }
+
+  const { label, variant, icon: Icon } = stageConfig
+
   return (
     <Badge variant={variant}>
-      <Icon data-icon="inline-start" aria-hidden />
-      <span className="sr-only">Etap: </span>
-      {label}
+      <Icon data-icon="inline-start" aria-hidden /> {label}
     </Badge>
   )
 }

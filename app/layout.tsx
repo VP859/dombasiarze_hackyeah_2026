@@ -41,14 +41,13 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={cn("scroll-pt-24 font-sans antialiased", inter.variable, figtree.variable)}
     >
-      <head>
+      <body className="flex min-h-svh flex-col">
+        {/* Next.js Script component with beforeInteractive strategy */}
         <Script
           id="text-size-script"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: textSizeScript }}
         />
-      </head>
-      <body className="flex min-h-svh flex-col">
         <ThemeProvider>
           <TooltipProvider>
             <a
@@ -57,7 +56,6 @@ export default async function RootLayout({
             >
               Przejdź do treści
             </a>
-            {/* Przyklejony tylko przy wysokim oknie — przy dużym powiększeniu nie zasłania treści. */}
             <header className="top-0 z-40 border-b print:hidden bg-background/85 backdrop-blur-md [@media(min-height:30rem)]:sticky [@media(prefers-reduced-transparency:reduce)]:bg-background">
               <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3">
                 <Link href="/" className="mr-auto font-heading text-2xl font-bold">
