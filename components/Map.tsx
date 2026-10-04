@@ -3,7 +3,6 @@
 import {
   type FormEvent,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react"
@@ -111,27 +110,29 @@ function CenterOnUser({
 }) {
   const map = useMap()
 
-  // useLayoutEffect: jego sprzątanie biegnie przed map.remove() w MapContainer (zwykły efekt rodzica),
-  // więc zdążymy zatrzymać animację, zanim Leaflet usunie mapę.
-  useLayoutEffect(() => {
-    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)")
-      .matches
+  useEffect(() => {
+    let cancelled = false
 
-    if (!fitBounds) {
-      map.panTo([center.lat, center.lng], { animate, duration: 0.35 })
-    } else {
+    map.whenReady(() => {
+      if (cancelled || !map.getPane("mapPane")) return
+
+      if (!fitBounds) {
+        map.setView([center.lat, center.lng], map.getZoom(), { animate: false })
+        return
+      }
+
       const circleBounds = L.latLng(center.lat, center.lng).toBounds(
         DEFAULT_OPERATION_RADIUS_METERS * 2
       )
-      const options = { padding: [48, 48] as L.PointTuple, maxZoom: 15 }
-      if (animate) map.flyToBounds(circleBounds, { ...options, duration: 0.35 })
-      else map.fitBounds(circleBounds, { ...options, animate: false })
-    }
+      map.fitBounds(circleBounds, {
+        padding: [48, 48],
+        maxZoom: 15,
+        animate: false,
+      })
+    })
 
-    // Zatrzymaj animację przy odmontowaniu (zmiana strony, podwójny montaż w dev) — inaczej Leaflet
-    // sięga do usuniętej mapy („reading '_leaflet_pos'”). Gdy mapy już nie ma, nie ma czego zatrzymywać.
     return () => {
-      if (map.getPane("mapPane")) map.stop()
+      cancelled = true
     }
   }, [center, fitBounds, map])
 
@@ -459,7 +460,7 @@ export default function Map({
           )}
         </div>
 
-        <section className="flex w-full min-w-0 flex-col gap-4 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <section className="flex w-full min-w-0 flex-col gap-2 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
           <div>
             <h3 className="text-lg font-semibold text-foreground">
               Obszar działania
@@ -495,7 +496,7 @@ export default function Map({
           />
           <form
             onSubmit={searchCity}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-1 lg:gap-2"
           >
             <Field>
               <FieldLabel
@@ -506,7 +507,7 @@ export default function Map({
               </FieldLabel>
               <Input
                 id="input-field-miasto"
-                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
+                className="h-9 rounded-lg md:text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 type="text"
                 placeholder="Np. Kraków"
                 value={cityQuery}
@@ -529,7 +530,7 @@ export default function Map({
                 Ulica
               </FieldLabel>
               <Input
-                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
+                className="h-9 rounded-lg text-sm md:text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 id="report-street"
                 name="street"
                 form="report-form"
@@ -551,7 +552,7 @@ export default function Map({
                 Numer budynku / punkt orientacyjny
               </FieldLabel>
               <Input
-                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
+                className="h-9 rounded-lg md:text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 id="report-building"
                 name="building"
                 form="report-form"
@@ -582,7 +583,7 @@ export default function Map({
                 type="submit"
                 variant="default"
                 size="xs"
-                className=" w-full! flex h-9 min-h-9 shrink-0 rounded-lg px-3 py-1 text-xs"
+                className="ml-auto flex h-9 min-h-9 shrink-0 rounded-lg px-3 py-1 text-xs"
                 disabled={isSearchingCity}
               >
                 {isSearchingCity ? "Szukam…" : "Szukaj"}
