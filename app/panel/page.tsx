@@ -4,9 +4,9 @@ import { InfoIcon, PlusIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+import { getSupabaseAdmin } from "@/lib/supabase"
 import { getChallenges } from "@/seed"
 import { getDraftSolutions } from "@/app/actions/rops-panel-actions"
 import { getNeedsFromDb } from "@/app/actions/needs-actions"
@@ -37,6 +37,7 @@ const MESSAGES = [
     body: "Dodaliśmy film z wdrożenia. Prosimy o aktualizację opisu.",
     date: "2 paź 2026, 16:40",
     answered: true,
+
   },
 ]
 
@@ -52,6 +53,7 @@ export default async function Page() {
 
   const newNeeds = realNeeds.filter((n) => n.status === "Nowe").length
   const unanswered = MESSAGES.filter((m) => !m.answered).length
+
   const stats = [
     { label: "Innowacje do weryfikacji", value: toVerify.length },
     { label: "Nowe zgłoszenia potrzeb", value: newNeeds },
@@ -78,8 +80,8 @@ export default async function Page() {
         ))}
       </dl>
 
-      <Tabs defaultValue="weryfikacja" className="gap-6">
-        <TabsList aria-label="Sekcje panelu">
+      <Tabs defaultValue="weryfikacja" className="gap-6 ">
+        <TabsList aria-label="Sekcje panelu" className={"rounded-full"}>
           <TabsTrigger value="weryfikacja">
             Do weryfikacji <Badge variant="secondary">{toVerify.length}</Badge>
           </TabsTrigger>
@@ -111,33 +113,7 @@ export default async function Page() {
         <TabsContent value="wiadomosci" className="flex flex-col gap-4">
           <h2 className="text-2xl font-bold">Wiadomości</h2>
           <p className="text-muted-foreground">Pytania od autorów pomysłów, gmin i organizacji.</p>
-          <ul className="flex flex-col gap-4">
-            {MESSAGES.map((message) => (
-              <li key={message.subject}>
-                <Card size="sm">
-                  <CardContent className="flex flex-col gap-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-lg font-semibold">{message.subject}</h3>
-                      {message.answered ? (
-                        <Badge variant="outline">Odpowiedziano</Badge>
-                      ) : (
-                        <Badge>Bez odpowiedzi</Badge>
-                      )}
-                    </div>
-                    <p>{message.body}</p>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-muted-foreground">
-                        {message.role} · {message.date}
-                      </span>
-                      <Button type="button" size="sm" variant={message.answered ? "outline" : "default"}>
-                        Odpowiedz<span className="sr-only">: {message.subject}</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
+          <MessagesList messages={messages} />
         </TabsContent>
 
         <TabsContent value="nabory" className="flex flex-col gap-4">

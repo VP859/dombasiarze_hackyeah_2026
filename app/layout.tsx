@@ -1,15 +1,16 @@
 import type { Metadata } from "next"
 import { Figtree, Inter } from "next/font/google"
+import { cookies } from "next/headers"
 import Link from "next/link"
 import Script from "next/script"
 
 import "./globals.css"
-import { RoleSwitcher } from "@/components/role-switcher"
 import { SiteNav } from "@/components/site-nav"
 import { TextSizeToggle } from "@/components/text-size-toggle"
 import { ThemeProvider, ThemeToggle } from "@/components/theme-provider"
 import { buttonVariants } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { ROLE_COOKIE, toRole } from "@/lib/role"
 import { cn } from "@/lib/utils"
 
 const inter = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-sans" })
@@ -27,11 +28,13 @@ export const metadata: Metadata = {
 // Przywraca rozmiar tekstu z przycisku A+ przed pierwszym malowaniem (bez mignięcia).
 const textSizeScript = `try{var s=localStorage.getItem("text-size");if(s)document.documentElement.style.fontSize=s}catch(e){}`
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const role = toRole((await cookies()).get(ROLE_COOKIE)?.value)
+
   return (
     <html
       lang="pl"
@@ -60,8 +63,7 @@ export default function RootLayout({
                 <Link href="/" className="mr-auto font-heading text-2xl font-bold">
                   Podaj Dalej
                 </Link>
-                <SiteNav />
-                <RoleSwitcher />
+                <SiteNav role={role} />
                 <TextSizeToggle />
                 <ThemeToggle />
               </div>
@@ -73,9 +75,6 @@ export default function RootLayout({
               <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-muted-foreground">
                 <p>Małopolski Hub Innowacji Społecznych · ROPS Kraków</p>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
-                  <Link href="/panel" className="underline underline-offset-4">
-                    Panel ROPS
-                  </Link>
                   <Link href="/deklaracja-dostepnosci" className="underline underline-offset-4">
                     Deklaracja dostępności
                   </Link>

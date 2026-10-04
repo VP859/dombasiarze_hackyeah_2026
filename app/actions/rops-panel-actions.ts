@@ -31,7 +31,7 @@ export async function getDraftSolutions(): Promise<DraftInnovation[]> {
     console.error("Błąd pobierania rozwiązań do weryfikacji:", error.message)
     return []
   }
-
+  
   return (data || []).map((item) => {
     const typedItem = item as {
       id: string
