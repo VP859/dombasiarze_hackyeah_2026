@@ -1,45 +1,20 @@
 import type { Metadata } from "next"
-import { InfoIcon, PlusIcon } from "lucide-react"
+import { PlusIcon } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import { getSupabaseAdmin } from "@/lib/supabase"
 import { getChallenges } from "@/seed"
 import { getDraftSolutions } from "@/app/actions/rops-panel-actions"
 import { getNeedsFromDb } from "@/app/actions/needs-actions"
+import { getMessagesFromDb } from "@/app/actions/messages-actions"
 
 import { NeedsPanel } from "./needs-panel"
 import { CallsTable, VerifyTable, type Call } from "./panel-tables"
+import { MessagesList } from "./messages-list"
 
 export const metadata: Metadata = { title: "Panel ROPS" }
-
-const MESSAGES = [
-  {
-    subject: "Pomysł: Klub młodych opiekunów",
-    role: "Mieszkaniec",
-    body: "Czy gmina może udostępnić salę na spotkania raz w tygodniu?",
-    date: "3 paź 2026, 14:20",
-    answered: false,
-  },
-  {
-    subject: "Zgłoszenie: Skawina",
-    role: "Samorząd",
-    body: "Prosimy o kontakt w sprawie dopasowanych innowacji.",
-    date: "3 paź 2026, 10:05",
-    answered: false,
-  },
-  {
-    subject: "Innowacja: Cyfrowy Senior",
-    role: "Organizacja",
-    body: "Dodaliśmy film z wdrożenia. Prosimy o aktualizację opisu.",
-    date: "2 paź 2026, 16:40",
-    answered: true,
-
-  },
-]
 
 const CALLS: Call[] = [
   { title: "Małopolskie Innowacje Społeczne 2026", deadline: "2026-11-30", applications: 4, open: true },
@@ -47,13 +22,12 @@ const CALLS: Call[] = [
 ]
 
 export default async function Page() {
-  // Pobieramy TYLKO realne rekordy z bazy Supabase
   const toVerify = await getDraftSolutions()
   const realNeeds = await getNeedsFromDb()
+  const realMessages = await getMessagesFromDb()
 
   const newNeeds = realNeeds.filter((n) => n.status === "Nowe").length
-  const unanswered = MESSAGES.filter((m) => !m.answered).length
-
+  const unanswered = realMessages.filter((m) => !m.answered).length
   const stats = [
     { label: "Innowacje do weryfikacji", value: toVerify.length },
     { label: "Nowe zgłoszenia potrzeb", value: newNeeds },
@@ -80,8 +54,8 @@ export default async function Page() {
         ))}
       </dl>
 
-      <Tabs defaultValue="weryfikacja" className="gap-6 ">
-        <TabsList aria-label="Sekcje panelu" className={"rounded-full"}>
+      <Tabs defaultValue="weryfikacja" className="gap-6">
+        <TabsList aria-label="Sekcje panelu">
           <TabsTrigger value="weryfikacja">
             Do weryfikacji <Badge variant="secondary">{toVerify.length}</Badge>
           </TabsTrigger>
@@ -113,7 +87,7 @@ export default async function Page() {
         <TabsContent value="wiadomosci" className="flex flex-col gap-4">
           <h2 className="text-2xl font-bold">Wiadomości</h2>
           <p className="text-muted-foreground">Pytania od autorów pomysłów, gmin i organizacji.</p>
-          <MessagesList messages={messages} />
+          <MessagesList messages={realMessages} />
         </TabsContent>
 
         <TabsContent value="nabory" className="flex flex-col gap-4">

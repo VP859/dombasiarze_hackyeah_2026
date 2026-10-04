@@ -15,7 +15,7 @@ export default async function PosterPage({ params }: PageProps<"/test/[id]/plaka
   const solution = await getSolutionById(id)
   if (!solution) notFound()
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dombasiarzehackyeah2026.vercel.app"
   const testUrl = `${siteUrl.replace(/\/$/, "")}/test/${encodeURIComponent(id)}`
   const qrCode = await QRCode.toString(testUrl, {
     type: "svg",
