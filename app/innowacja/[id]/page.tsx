@@ -34,6 +34,7 @@ const actionLink = (id: string, action: InnovationAction) =>
     opinia: { href: "#opinia", label: "Oceń innowację" },
     kreator: { href: "/kreator", label: "Mam podobny pomysł" },
     panel: { href: "/panel", label: "Sprawdź w Panelu ROPS" },
+    pytanie: { href: `/zapytaj?innowacja=${id}`, label: "Zadaj pytanie o tę innowację" },
   })[action]
 
 // ponytail: dzielenie tekstu z bazy na punkty; gdy backend da tablice, użyć ich wprost.
@@ -54,10 +55,17 @@ export async function generateMetadata({ params }: PageProps<"/innowacja/[id]">)
   return { title: solution?.title ?? "Nie znaleziono innowacji" }
 }
 
-export default async function Page({ params }: PageProps<"/innowacja/[id]">) {
+export default async function Page({ params, searchParams }: PageProps<"/innowacja/[id]">) {
   const { id } = await params
   const solution = await getSolution(id)
   if (!solution) notFound()
+
+  // Wejście z wyników „Zgłoś problem” (?od=<id zgłoszenia>) — link wraca do tych wyników, nie do biblioteki.
+  const { od } = await searchParams
+  const back =
+    typeof od === "string"
+      ? { href: `/zglos?wynik=${encodeURIComponent(od)}`, label: "Wróć do dopasowanych innowacji" }
+      : { href: "/biblioteka", label: "Wróć do biblioteki" }
 
   const reviews = await getReviewsForSolution(id).catch(() => [])
   const role = toRole((await cookies()).get(ROLE_COOKIE)?.value)
@@ -74,9 +82,9 @@ export default async function Page({ params }: PageProps<"/innowacja/[id]">) {
   return (
     <article className="flex flex-col gap-10">
       <div className="flex flex-col gap-4">
-        <Link href="/biblioteka" className="flex w-fit items-center gap-2 underline underline-offset-4">
+        <Link href={back.href} className="flex w-fit items-center gap-2 underline underline-offset-4">
           <ArrowLeftIcon aria-hidden className="size-5" />
-          Wróć do biblioteki
+          {back.label}
         </Link>
         <h1 className="max-w-3xl text-4xl font-bold text-balance md:text-5xl">{solution.title}</h1>
         <StageBadge stage={solution.stage} />

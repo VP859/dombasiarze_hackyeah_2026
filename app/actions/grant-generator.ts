@@ -1,132 +1,48 @@
 'use server'
 
 import { getSupabaseAdmin } from '@/lib/supabase'
-import { generateGrantApplicationContent, GrantApplicationContent } from '@/lib/ai'
+import { generateGrantApplicationContent, type GrantApplicationContent } from '@/lib/ai'
+import { getOpenCalls } from '@/app/actions/calls-actions'
+import { getIdea } from '@/app/actions/ideas'
 
-const isValidUuid = (val?: string) =>
-  !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)
+// Błędy zwracamy jako wartość, bo Next maskuje rzucone błędy w produkcji.
+export type GrantResult =
+  | { ok: true; application: GrantApplicationContent }
+  | { ok: false; error: string }
 
-export async function generateAndSaveGrantApplication(
-  ideaId: string,
-  callId?: string
-): Promise<{ application: GrantApplicationContent; savedId: string }> {
-  const supabaseAdmin = getSupabaseAdmin()
+export async function generateAndSaveGrantApplication(ideaId: string, callId: string): Promise<GrantResult> {
+  const [idea, openCalls] = await Promise.all([getIdea(ideaId), getOpenCalls()])
+  if (!idea) return { ok: false, error: 'Nie znaleźliśmy tego pomysłu.' }
 
-  let targetIdeaId = ideaId
-  let targetIdeaTitle = 'Testowy Pomysł'
-  let targetIdeaEssence = 'Opis testowy'
-  let targetIdeaAudience = 'Mieszkańcy Małopolski'
-  let targetIdeaCanvas = {}
+  // Wniosek przyjmujemy tylko do trwającego naboru — po terminie generator się zamyka.
+  const call = openCalls.find((c) => c.id === callId)
+  if (!call) return { ok: false, error: 'Ten nabór jest już zamknięty. Wybierz inny.' }
 
-  if (isValidUuid(ideaId)) {
-    const { data: existingIdea } = await supabaseAdmin
-      .from('ideas')
-      .select('*')
-      .eq('id', ideaId)
-      .maybeSingle()
-
-    if (existingIdea) {
-      targetIdeaTitle = existingIdea.title
-      targetIdeaEssence = existingIdea.essence
-      targetIdeaAudience = existingIdea.audience || targetIdeaAudience
-      targetIdeaCanvas = existingIdea.canvas || {}
-    }
-  } else {
-    const { data: newIdea, error: ideaErr } = await supabaseAdmin
-      .from('ideas')
-      .insert({
-        title: 'Pomysł z Generatora Wniosków',
-        essence: 'Automatycznie utworzony pomysł dla weryfikacji wniosku.',
-        audience: 'Mieszkańcy Małopolski',
-        stage: 'pomysł',
-        canvas: {},
-      })
-      .select()
-      .single()
-
-    if (ideaErr || !newIdea) {
-      throw new Error(`[Błąd tabeli ideas] Nie udało się utworzyć pomysłu: ${ideaErr?.message || ideaErr?.hint}`)
-    }
-    targetIdeaId = newIdea.id
-    targetIdeaTitle = newIdea.title
-    targetIdeaEssence = newIdea.essence
-  }
-
-  let targetCallId = callId
-  let targetCallTitle = 'Małopolskie Innowacje Społeczne 2026'
-  let targetCallRules = 'Dofinansowanie do 50 000 PLN na pilotaż rozwiązań społecznych.'
-
-  if (isValidUuid(callId)) {
-    const { data: existingCall } = await supabaseAdmin
-      .from('calls')
-      .select('*')
-      .eq('id', callId)
-      .maybeSingle()
-
-    if (existingCall) {
-      targetCallTitle = existingCall.title
-      targetCallRules = existingCall.rules
-    }
-  } else {
-    const { data: firstCall } = await supabaseAdmin
-      .from('calls')
-      .select('*')
-      .limit(1)
-      .maybeSingle()
-
-    if (firstCall) {
-      targetCallId = firstCall.id
-      targetCallTitle = firstCall.title
-      targetCallRules = firstCall.rules
-    } else {
-      const { data: newCall, error: callErr } = await supabaseAdmin
-        .from('calls')
-        .insert({
-          title: 'Małopolskie Innowacje Społeczne 2026',
-          rules: 'Dofinansowanie do 50 000 PLN na pilotaż rozwiązań społecznych.',
-        })
-        .select()
-        .single()
-
-      if (callErr || !newCall) {
-        throw new Error(`[Błąd tabeli calls] Brak naborów i błąd tworzenia nowego: ${callErr?.message}`)
+  try {
+    const application = await generateGrantApplicationContent(
+      {
+        title: idea.title,
+        essence: idea.essence ?? '',
+        audience: idea.audience || 'Mieszkańcy Małopolski',
+        canvas: idea.canvas ?? {},
+      },
+      {
+        title: call.title,
+        rules: call.rules || `Nabór „${call.title}”, termin składania wniosków ${call.deadline}.`,
       }
-      targetCallId = newCall.id
-      targetCallTitle = newCall.title
-      targetCallRules = newCall.rules
+    )
+
+    const { error } = await getSupabaseAdmin()
+      .from('applications')
+      .insert({ idea_id: idea.id, call_id: call.id, content: application })
+    if (error) {
+      console.error('Zapis wniosku:', error)
+      return { ok: false, error: 'Nie udało się zapisać wniosku. Spróbuj ponownie za chwilę.' }
     }
-  }
 
-  const applicationContent = await generateGrantApplicationContent(
-    {
-      title: targetIdeaTitle,
-      essence: targetIdeaEssence,
-      audience: targetIdeaAudience,
-      canvas: targetIdeaCanvas,
-    },
-    {
-      title: targetCallTitle,
-      rules: targetCallRules,
-    }
-  )
-
-  const { data: insertedApp, error: insertError } = await supabaseAdmin
-    .from('applications')
-    .insert({
-      idea_id: targetIdeaId,
-      call_id: targetCallId,
-      content: applicationContent,
-    })
-    .select('id')
-    .single()
-
-  if (insertError) {
-    console.error('Błąd zapisu w PostgreSQL:', insertError)
-    throw new Error(`[Błąd bazy Supabase w tabeli applications]: ${insertError.message} (Kod: ${insertError.code})`)
-  }
-
-  return {
-    application: applicationContent,
-    savedId: insertedApp.id,
+    return { ok: true, application }
+  } catch (err) {
+    console.error('Generator wniosków:', err)
+    return { ok: false, error: 'Asystent nie odpowiedział. Spróbuj ponownie za chwilę.' }
   }
 }

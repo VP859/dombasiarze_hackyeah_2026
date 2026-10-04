@@ -22,7 +22,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import type { Stage } from "@/seed"
+import { CANVAS_FIELDS, type Stage } from "@/seed"
 
 const STEPS = ["Opis pomysłu", "Kanwa i podobne innowacje", "Gotowe"]
 
@@ -32,13 +32,6 @@ const STAGE_OPTIONS: { value: Stage; label: string; description: string }[] = [
   { value: "sprawdzona", label: "Sprawdzona", description: "Już działa i ma efekty." },
 ]
 
-const CANVAS_FIELDS: { key: keyof CanvasData; label: string }[] = [
-  { key: "problem_definition", label: "Jaki problem rozwiązuje?" },
-  { key: "target_group_needs", label: "Czego potrzebują odbiorcy?" },
-  { key: "innovative_aspect", label: "Co w nim jest nowego?" },
-  { key: "expected_outcomes", label: "Jakie będą efekty?" },
-  { key: "potential_risks", label: "Ryzyka i bariery" },
-]
 
 export function IdeaWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
@@ -83,6 +76,7 @@ export function IdeaWizard() {
   }
 
   const handleSave = async () => {
+    if (!canvas) return
     setLoading(true)
     setError(null)
 
@@ -297,9 +291,12 @@ export function IdeaWizard() {
             <CheckCircle2Icon aria-hidden />
             <AlertTitle>Pomysł został zapisany</AlertTitle>
             <AlertDescription className="flex flex-col items-start gap-4">
-              <p>Pracownicy ROPS zobaczą go w panelu. Możesz już przygotować szkic wniosku o grant.</p>
-              <Link href={`/granty/generator?ideaId=${savedIdeaId}`} className={buttonVariants({ size: "lg" })}>
-                Przygotuj wniosek o grant
+              <p>
+                Pracownicy ROPS sprawdzą go w panelu i mogą dodać do biblioteki innowacji. Na stronie pomysłu
+                asystent podpowie, jak go rozwinąć, a w czasie naboru przygotujesz tam wniosek o grant.
+              </p>
+              <Link href={`/kreator/${savedIdeaId}`} className={buttonVariants({ size: "lg" })}>
+                Rozwiń pomysł z asystentem
                 <ArrowRightIcon data-icon="inline-end" aria-hidden />
               </Link>
             </AlertDescription>

@@ -25,10 +25,6 @@ export const metadata: Metadata = { title: "Biblioteka innowacji" }
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? ""
 
-// Dane z Supabase (server action getSolutions): wyszukiwanie i etap filtruje baza, „Dla kogo” i wyzwanie — strona.
-// Filtry to zwykły formularz GET: stan w URL (Select wysyła wartość ukrytym polem `name`).
-// Pasek wyszukiwania to <form id="filtry">, a listy w bocznej kolumnie należą do niego przez atrybut `form`.
-// Zwykłe <a> (nie Link) czyści filtry pełnym przeładowaniem — inaczej pola zachowałyby stare wartości.
 export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
   const params = await searchParams
   const filters = {
@@ -38,7 +34,6 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
     stage: first(params.stage),
   }
 
-  // null = błąd bazy lub sieci; pokazujemy komunikat zamiast wywracać stronę.
   const solutions = await getSolutions({ search: filters.q, stage: filters.stage || undefined }).catch(
     (error) => {
       console.error(error)
@@ -50,8 +45,6 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
   )
   const challenges = getChallenges()
   const challenge = challenges.find((c) => c.id === filters.challenge)
-  // ponytail: wyzwanie dopasowane po słowach kluczowych z seed/challenges.json, bo innowacje w bazie
-  // nie mają jeszcze challenge_ids. Gdy dostaną, filtrować po nich w zapytaniu (.contains).
   const inChallenge = (s: Solution) =>
     !challenge ||
     challenge.keywords.some((word) =>
@@ -60,7 +53,6 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
   const results = (solutions ?? []).filter(
     (s) => (!filters.audience || s.audience === filters.audience) && inChallenge(s)
   )
-  // ponytail: jedno zapytanie o oceny na kartę; przy dużej bibliotece pobrać średnie jednym zapytaniem.
   const ratings = await Promise.all(
     results.map((s) =>
       getReviewsForSolution(s.id)
@@ -93,7 +85,6 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
         </p>
       </div>
 
-      {/* Przykleja się pod headerem (wysokość headera: 4.25rem + 1px), tylko przy wysokim oknie. */}
       <form
         id="filtry"
         method="get"
@@ -153,7 +144,7 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
             <Button type="submit" form="filtry" className="w-full">
               Pokaż wyniki
             </Button>
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- pełne przeładowanie czyści pola filtrów */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a href="/biblioteka" className={cn(buttonVariants({ variant: "outline" }), "w-full")}>
               Wyczyść filtry
             </a>
@@ -192,7 +183,7 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
               <AlertDescription>Sprawdź połączenie z internetem i odśwież stronę.</AlertDescription>
             </Alert>
           ) : results.length ? (
-            <ul className="grid gap-6 md:grid-cols-2">
+            <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3">
               {results.map((solution, i) => (
                 <li key={solution.id}>
                   <InnovationCard solution={solution} rating={ratings[i]} />
@@ -204,7 +195,7 @@ export default async function Page({ searchParams }: PageProps<"/biblioteka">) {
               title="Brak innowacji dla tych filtrów"
               description="Usuń któryś filtr albo wyczyść wszystkie, żeby zobaczyć więcej innowacji."
             >
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- pełne przeładowanie czyści pola filtrów */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a href="/biblioteka" className={buttonVariants({ variant: "secondary" })}>
                 Wyczyść filtry
               </a>

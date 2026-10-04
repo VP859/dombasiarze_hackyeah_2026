@@ -16,7 +16,7 @@ export const toRole = (value?: string): Role =>
   ROLES.find((role) => role.value === value)?.value ?? "resident"
 
 /** Działania na stronie innowacji — pierwsze na liście jest wyróżnione. */
-export type InnovationAction = "gmina" | "test" | "plakat" | "opinia" | "kreator" | "panel"
+export type InnovationAction = "gmina" | "test" | "plakat" | "opinia" | "kreator" | "panel" | "pytanie"
 
 // Czym różnią się role: opis i główne działanie na stronie głównej oraz przyciski na stronie innowacji.
 export const ROLE_VIEW: Record<Role, { lead: string; main: { href: string; label: string }; innovation: InnovationAction[] }> = {
@@ -24,19 +24,19 @@ export const ROLE_VIEW: Record<Role, { lead: string; main: { href: string; label
   resident: {
     lead: "Opisz problem w swojej okolicy. Pokażemy, jak inne gminy już go rozwiązały.",
     main: { href: "/zglos", label: "Zgłoś problem" },
-    innovation: ["test", "opinia"],
+    innovation: ["test", "opinia", "pytanie"],
   },
   // Moduły III (kreator) i IV (organizacja testu)
   ngo: {
     lead: "Zgłoś swoje rozwiązanie, rozwiń je z asystentem AI i przygotuj wniosek o grant.",
     main: { href: "/kreator", label: "Zgłoś rozwiązanie" },
-    innovation: ["plakat", "kreator"],
+    innovation: ["plakat", "kreator", "pytanie"],
   },
   // Moduły II (biblioteka) i VII (dostosuj do gminy)
   jst: {
     lead: "Znajdź sprawdzone rozwiązanie, dostosuj je do swojej gminy z pomocą AI i przetestuj z mieszkańcami.",
     main: { href: "/biblioteka", label: "Znajdź rozwiązanie dla gminy" },
-    innovation: ["gmina", "plakat"],
+    innovation: ["gmina", "plakat", "pytanie"],
   },
   // Moduł VI (panel administratora)
   admin: {

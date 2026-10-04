@@ -1,7 +1,17 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { CalendarIcon, CircleAlertIcon, LightbulbIcon, MailIcon, UserIcon } from "lucide-react"
+import {
+  CalendarIcon,
+  CircleAlertIcon,
+  CircleCheckIcon,
+  CircleDashedIcon,
+  CircleDotIcon,
+  LightbulbIcon,
+  MailIcon,
+  UserIcon,
+  type LucideIcon,
+} from "lucide-react"
 
 import { DataTable, type Column } from "@/components/data-table"
 import { EmptyState } from "@/components/empty-state"
@@ -29,6 +39,7 @@ import {
 } from "@/components/ui/sheet"
 import { REPORT_AUDIENCES, REPORT_ROLES, type Challenge, type ReportRole } from "@/seed"
 import { updateNeedStatusAction } from "@/app/actions/needs-actions"
+import { cn } from "@/lib/utils"
 
 import { formatDate, innowacje } from "./format"
 import { Block, Chips, Facts, SectionTitle } from "./sheet-parts"
@@ -50,6 +61,18 @@ export type Need = {
 }
 
 const STATUSES: NeedStatus[] = ["Nowe", "W toku", "Zamknięte"]
+
+// Status w kolorach motywu; kształt ikony też go odróżnia, nie tylko kolor (WCAG 1.4.1).
+const STATUS_ICON: Record<NeedStatus, { icon: LucideIcon; className: string }> = {
+  Nowe: { icon: CircleDotIcon, className: "text-primary" },
+  "W toku": { icon: CircleDashedIcon, className: "text-foreground" },
+  Zamknięte: { icon: CircleCheckIcon, className: "text-muted-foreground" },
+}
+
+function StatusIcon({ status }: { status: NeedStatus }) {
+  const { icon: Icon, className } = STATUS_ICON[status]
+  return <Icon aria-hidden className={cn("size-4", className)} />
+}
 
 const roleLabel = (role: ReportRole) => REPORT_ROLES.find((r) => r.value === role)?.label ?? role
 
@@ -75,7 +98,7 @@ function StatusSelector({ need }: { need: Need }) {
   }
 
   return (
-    <div className="w-32">
+    <div className="w-40">
       <Select
         value={currentStatus}
         onValueChange={handleStatusChange}
@@ -83,20 +106,16 @@ function StatusSelector({ need }: { need: Need }) {
       >
         <SelectTrigger
           aria-label={`Status zgłoszenia: ${need.gmina}`}
-          className={`h-8 text-xs ${
-            currentStatus === "Nowe"
-              ? "border-green-300 bg-green-400 text-black font-bold"
-              : currentStatus === "Zamknięte"
-                ? "border-red-300 bg-red-100 text-red-900 font-bold"
-                : ""
-          }`}
+          className={cn("w-full", currentStatus === "Zamknięte" && "text-muted-foreground")}
         >
+          <StatusIcon status={currentStatus} />
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
             {STATUSES.map((s) => (
-              <SelectItem key={s} value={s} className="text-xs">
+              <SelectItem key={s} value={s}>
+                <StatusIcon status={s} />
                 {s}
               </SelectItem>
             ))}

@@ -20,8 +20,10 @@ import { approveSolutionAction } from "@/app/actions/rops-panel-actions"
 import {
   toggleCallStatusAction,
   getApplicationsForCall,
+  setApplicationStatusAction,
   type CallDb,
   type ApplicationDb,
+  type ApplicationStatus,
 } from "@/app/actions/calls-actions"
 
 import { formatDate } from "./format"
@@ -55,6 +57,51 @@ function CallStatusBadge({ call }: { call: Call }) {
         {isPending ? "..." : call.open ? "Otwarty" : "Zamknięty"}
       </Badge>
     </button>
+  )
+}
+
+const STATUS_BADGE: Record<ApplicationStatus, { label: string; variant: "default" | "outline" | "destructive" }> = {
+  submitted: { label: "Do oceny", variant: "outline" },
+  approved: { label: "Zatwierdzony", variant: "default" },
+  rejected: { label: "Odrzucony", variant: "destructive" },
+}
+
+// Decyzja ROPS o wniosku: zatwierdź albo odrzuć. Wynik ogłaszany czytnikom ekranu.
+function ApplicationReview({
+  app,
+  onChange,
+}: {
+  app: ApplicationDb
+  onChange: (status: ApplicationStatus) => void
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [message, setMessage] = useState("")
+
+  const decide = (status: ApplicationStatus) =>
+    startTransition(async () => {
+      const result = await setApplicationStatusAction(app.id, status)
+      if (result.ok) {
+        onChange(status)
+        setMessage(status === "approved" ? "Wniosek zatwierdzony." : "Wniosek odrzucony.")
+      } else {
+        setMessage(result.error)
+      }
+    })
+
+  return (
+    <div className="flex flex-col gap-2 border-t pt-3">
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" disabled={isPending || app.status === "approved"} onClick={() => decide("approved")}>
+          Zatwierdź<span className="sr-only">: {app.ideaTitle}</span>
+        </Button>
+        <Button type="button" size="sm" variant="outline" disabled={isPending || app.status === "rejected"} onClick={() => decide("rejected")}>
+          Odrzuć<span className="sr-only">: {app.ideaTitle}</span>
+        </Button>
+      </div>
+      <p aria-live="polite" className="text-sm text-muted-foreground">
+        {isPending ? "Zapisuję decyzję…" : message}
+      </p>
+    </div>
   )
 }
 
@@ -108,9 +155,13 @@ function ApplicationsSheet({ call }: { call: Call }) {
 
               return (
                 <div key={app.id} className="rounded-lg border p-4 space-y-3 bg-muted/30">
-                  <div className="flex justify-between items-start gap-2">
-                    <h4 className="font-semibold text-base text-primary">{app.ideaTitle}</h4>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">{app.createdAt}</span>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-base text-primary">{app.ideaTitle}</h3>
+                    {app.status && (
+                      <Badge variant={STATUS_BADGE[app.status].variant} className="shrink-0">
+                        {STATUS_BADGE[app.status].label}
+                      </Badge>
+                    )}
                   </div>
 
                   <p className="text-xs text-muted-foreground">Autor: {app.authorEmail}</p>
@@ -139,6 +190,13 @@ function ApplicationsSheet({ call }: { call: Call }) {
                       </ul>
                     </div>
                   )}
+
+                  <ApplicationReview
+                    app={app}
+                    onChange={(status) =>
+                      setApplications((list) => list.map((a) => (a.id === app.id ? { ...a, status } : a)))
+                    }
+                  />
                 </div>
               )
             })

@@ -5,6 +5,7 @@ import Link from "next/link"
 import Script from "next/script"
 
 import "./globals.css"
+import { getInboxCount } from "@/app/actions/messages-actions"
 import { SiteNav } from "@/components/site-nav"
 import { TextSizeToggle } from "@/components/text-size-toggle"
 import { ThemeProvider, ThemeToggle } from "@/components/theme-provider"
@@ -34,6 +35,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const role = toRole((await cookies()).get(ROLE_COOKIE)?.value)
+  const inbox = await getInboxCount(role)
 
   return (
     <html
@@ -61,7 +63,7 @@ export default async function RootLayout({
                 <Link href="/" className="mr-auto font-heading text-2xl font-bold">
                   Podaj Dalej
                 </Link>
-                <SiteNav role={role} />
+                <SiteNav role={role} inbox={inbox} />
                 <TextSizeToggle />
                 <ThemeToggle />
               </div>

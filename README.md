@@ -1,4 +1,4 @@
-# Podaj Dalej — nie wymyślaj koła na nowo
+# Podaj Dalej — nie wymyślaj koła na nowo 
 
 Platforma Małopolskiego Hubu Innowacji Społecznych (ROPS Kraków), przygotowana na HackYeah 2026.
 
@@ -12,27 +12,31 @@ Gminy często tworzą od zera rozwiązania, które gdzie indziej już działają
 
 | Moduł ROPS | W aplikacji | Trasa | Stan |
 | --- | --- | --- | --- |
-| I. Matchmaking | Zgłoś problem | `/zglos` | Formularz z mapą gotowy; zapis do bazy, analiza AI i dopasowania w trakcie podpinania |
+| I. Matchmaking | Zgłoś problem | `/zglos` | Działa: analiza AI, dopasowane innowacje i podobne zgłoszenia z innych gmin (Gemini + pgvector) |
 | II. Zasobnik wiedzy | Biblioteka, wyzwania, strona innowacji | `/biblioteka`, `/innowacja/[id]`, `/wyzwania` | Działa (Supabase) |
-| III. Kreator pomysłów | Zgłoś rozwiązanie | `/kreator`, `/kreator/[id]` | Widok poglądowy |
-| IV. Tester innowacji | Zapisy do testu, plakat z QR, opinie | `/test/[id]`, `/test/[id]/plakat` | Plakat i opinie działają, zapisy jeszcze bez bazy |
-| V. Komunikacja | Wątek z ROPS | w „Zgłoś rozwiązanie” | Widok poglądowy |
-| VI. Panel administratora | Panel ROPS | `/panel` | Widok poglądowy z podglądem innowacji |
+| III. Kreator pomysłów | Zgłoś rozwiązanie, fiszka z asystentem, wniosek o grant | `/kreator`, `/kreator/[id]`, `/granty/generator` | Działa (Gemini + Supabase): kanwa, asystent kreatora, pomysł trafia do weryfikacji ROPS; generator wniosków tylko w czasie naboru, dopasowany do jego zasad |
+| IV. Tester innowacji | Zapisy do testu, plakat z QR, opinie | `/test/[id]`, `/test/[id]/plakat` | Działa: zapisy w bazie z licznikiem (jeden adres raz), plakat, oceny z propozycjami usprawnień |
+| V. Komunikacja | Zadaj pytanie (ROPS albo mentor), strona sprawy, strefa mentora | `/zapytaj`, `/wiadomosci/[id]`, `/mentor`, `/panel` | Działa: pytania z innowacji, pomysłu i wyników dopasowania (partnerstwa), odpowiedź na stronie sprawy i e-mailem, liczniki spraw w menu, powiadomienia e-mail dla ROPS |
+| VI. Panel administratora | Panel ROPS | `/panel` | Działa: innowacje do weryfikacji, zgłoszenia, pytania z odpowiadaniem, nabory z zasadami i wnioskami |
 | VII. Middleman | Dostosuj do gminy | `/innowacja/[id]/gmina` | Działa (Gemini) |
 
 ### Najważniejsze funkcje
 
-- **Biblioteka innowacji:** wyszukiwarka i filtry (etap, odbiorcy), wyniki z bazy Supabase, karty z ocenami.
+- **Role bez logowania:** przełącznik „Jestem…” w nagłówku (mieszkaniec, organizacja, samorząd, ROPS, ekspert) zmienia główne działania na stronie głównej i przy innowacjach, a „Panel ROPS” pokazuje w menu tylko roli ROPS. Rolę trzyma ciasteczko; to tryb demo, nie uprawnienia.
+- **Biblioteka innowacji:** wyszukiwarka i filtry (wyzwanie, odbiorcy, etap), wyniki z bazy Supabase, karty z ocenami. Filtr wyzwań dopasowuje innowacje po słowach kluczowych z `seed/challenges.json`, dopóki innowacje w bazie nie mają przypisanych wyzwań.
 - **Strona innowacji:** problem, rozwiązanie, efekty, potrzebne zasoby, materiały źródłowe, oceny i formularz dodawania opinii (działa też bez JavaScriptu).
 - **Dostosuj do gminy:** gmina podaje nazwę, liczbę mieszkańców, typ, budżet i lokalne wyzwania, a asystent AI przygotowuje plan wdrożenia: kroki, możliwe bariery, budżet i źródła finansowania, wskaźniki sukcesu.
-- **Zgłaszanie problemu:** opis potrzeby także głosem (rozpoznawanie mowy wbudowane w przeglądarkę, bez wysyłania nagrania na serwer), zapis do bazy, analiza AI i wyszukiwanie podobnych innowacji (embeddingi + pgvector).
-- **Tester:** plakat do wydruku z kodem QR prowadzącym do zapisów na test.
-- **Panel ROPS:** weryfikacja nowych innowacji z podglądem, zgłoszenia potrzeb, wiadomości i nabory.
+- **Zgłaszanie problemu:** opis potrzeby także głosem (rozpoznawanie mowy w przeglądarce, Web Speech API), miejsce na mapie (OpenStreetMap), wybór wyzwań i odbiorców. Po wysłaniu użytkownik od razu widzi analizę AI, najlepiej dopasowane innowacje i podobne zgłoszenia z innych gmin (embeddingi Gemini + pgvector); zgłoszenie trafia do Panelu ROPS z wyzwaniami i liczbą dopasowań.
+- **Kreator pomysłów:** asystent AI układa opis pomysłu w kanwę innowacji ROPS i sprawdza, czy podobne rozwiązanie już jest w bibliotece; pomysł zapisuje się w bazie. Z zapisanego pomysłu generator przygotowuje szkic wniosku o grant pod wybrany nabór.
+- **Tester:** zapisy na test z licznikiem i plakat do wydruku z kodem QR prowadzącym do zapisów.
+- **Komunikacja:** pytanie do ROPS albo mentora z każdej innowacji i pomysłu; autor widzi odpowiedź na stronie swojej sprawy i dostaje ją e-mailem. ROPS i mentorzy widzą w menu licznik spraw, a ROPS dostaje e-mail o każdym nowym zgłoszeniu, pomyśle i pytaniu.
+- **Panel ROPS:** weryfikacja i publikacja nowych innowacji z podglądem, zgłoszenia potrzeb z filtrami i zmianą statusu, wiadomości i nabory.
 
 ## Dostępność (WCAG 2.1 AA)
 
 - Język strony `pl`, unikalne tytuły, link „Przejdź do treści”, jeden nagłówek `h1` i nagłówki po kolei, landmarki.
-- Pełna obsługa klawiaturą i widoczny fokus.
+- Pełna obsługa klawiaturą i wyraźny fokus (obrys 2 px w kolorze marki).
+- Kontrast tekstu co najmniej 4,5:1, obramowań pól i fokusu co najmniej 3:1 — w trybie jasnym i ciemnym.
 - Tekst bazowy 18 px, przycisk **A+** do powiększania tekstu (zapamiętywany), przyciski i pola min. 44 px.
 - Tryb jasny i ciemny.
 - Każde pole ma widoczną etykietę, a błędy są opisane słowami.
@@ -40,14 +44,16 @@ Gminy często tworzą od zera rozwiązania, które gdzie indziej już działają
 - Działa przy szerokości 320 px i powiększeniu 200%. Przyklejony nagłówek przy dużym powiększeniu się odkleja.
 - Animacje tylko przy `prefers-reduced-motion: no-preference`.
 - [Deklaracja dostępności](app/deklaracja-dostepnosci/page.tsx) i prosty język.
+- Sprawdzone narzędziem axe-core (reguły WCAG 2.1 A i AA) na wszystkich stronach w obu motywach oraz ręcznie: klawiatura, 320 px, odstępy w tekście.
 
 ## Technologia
 
 - [Next.js 16](https://nextjs.org) (App Router, Server Components, Server Actions), TypeScript
 - Tailwind CSS 4, [shadcn/ui](https://ui.shadcn.com) (Base UI), lucide-react
 - [Supabase](https://supabase.com): Postgres + pgvector
-- Google Gemini: analiza zgłoszeń, embeddingi, plany wdrożenia
-- Leaflet: mapa w zgłoszeniu problemu
+- Google Gemini (`gemini-3.1-flash-lite`, `gemini-embedding-001`): analiza zgłoszeń, kanwa pomysłu, plany wdrożenia, szkice wniosków, embeddingi
+- Leaflet + OpenStreetMap Nominatim: mapa i wyszukiwanie adresów w zgłoszeniu problemu
+- Resend: e-maile z odpowiedziami z Panelu ROPS
 
 ## Uruchomienie lokalnie
 
@@ -66,6 +72,17 @@ SUPABASE_SERVICE_ROLE_KEY=...
 GEMINI_API_KEY=...
 # opcjonalnie: adres, na który prowadzi kod QR na plakacie
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# opcjonalnie: e-maile (odpowiedzi na pytania, dopasowania dla autorów zgłoszeń)
+RESEND_API_KEY=...
+RESEND_FROM="Podaj Dalej <onboarding@resend.dev>"
+# opcjonalnie: adres zespołu ROPS na powiadomienia o nowych zgłoszeniach, pomysłach i pytaniach
+ROPS_EMAIL=...
+```
+
+Baza: uruchom pliki z `supabase/migrations/` w Supabase → SQL Editor, a potem policz wektory do dopasowań (innowacje zatwierdzane w Panelu ROPS dostają je automatycznie):
+
+```bash
+node --env-file=.env scripts/embed.mjs
 ```
 
 Uruchom serwer deweloperski i otwórz http://localhost:3000:
@@ -89,15 +106,20 @@ app/
   biblioteka/               biblioteka innowacji
   innowacja/[id]/           strona innowacji z opiniami
   innowacja/[id]/gmina/     Dostosuj do gminy (AI)
+  wyzwania/                 wyzwania społeczne z linkami do biblioteki
   zglos/                    zgłaszanie problemu z mapą
   kreator/                  Zgłoś rozwiązanie (kreator pomysłów)
+  granty/generator/         szkic wniosku o grant (AI)
   test/[id]/                zapisy do testu i plakat z QR
   panel/                    Panel ROPS
-  actions/                  Server Actions (Supabase, Gemini)
+  deklaracja-dostepnosci/   deklaracja dostępności
+  api/geocode/              wyszukiwanie adresów (OpenStreetMap Nominatim)
+  actions/                  Server Actions (Supabase, Gemini, Resend)
 components/                 komponenty aplikacji
 components/ui/              komponenty shadcn/ui
-lib/                        klient Supabase, funkcje AI
-seed/                       dane przykładowe (wyzwania)
+lib/                        klient Supabase, funkcje AI, role (role.ts)
+seed/                       dane przykładowe (wyzwania ze słowami kluczowymi)
+prezentacja/                prezentacja projektu (PowerPoint)
 ```
 
 ## Dane
