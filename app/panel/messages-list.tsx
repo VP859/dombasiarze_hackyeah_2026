@@ -1,13 +1,9 @@
 "use client"
 
-import { type FormEvent, useState, useTransition } from "react"
-import { CalendarIcon, CheckCircle2Icon, CircleAlertIcon, Loader2Icon, MessageSquareIcon, SendIcon, UserIcon } from "lucide-react"
-
-import { replyToMessageAction } from "@/app/actions/rops-panel-actions"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useState, useTransition } from "react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import {
   Sheet,
   SheetClose,
@@ -18,41 +14,36 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Textarea } from "@/components/ui/textarea"
 
-import { formatDate } from "./format"
-import { Block, Facts } from "./sheet-parts"
+import { replyToMessageAction, type DbMessage } from "@/app/actions/messages-actions"
 
-// Bez adresu e-mail — ten zna tylko serwer (replyToMessageAction).
-export type MessageItem = {
-  id: string
-  subject: string
-  role: string
-  body: string
-  /** ISO, np. 2026-10-03 */
-  date: string
-  answered: boolean
-}
-
-export function MessagesList({ messages }: { messages: MessageItem[] }) {
+export function MessagesList({ messages }: { messages: DbMessage[] }) {
   return (
     <ul className="flex flex-col gap-4">
       {messages.map((message) => (
-        <li key={message.id}>
+        <li key={message.id || message.subject}>
           <Card size="sm">
             <CardContent className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-lg font-semibold">{message.subject}</h3>
                 {message.answered ? (
-                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Odpowiedziano</p>
+                  <Badge variant="outline">Odpowiedziano</Badge>
                 ) : (
-                  <p className="text-sm font-semibold text-red-700 dark:text-red-400">Bez odpowiedzi</p>
+                  <Badge>Bez odpowiedzi</Badge>
                 )}
               </div>
               <p>{message.body}</p>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-muted-foreground">
-                  {message.role} · {formatDate(message.date)}
+              
+              {message.replyBody && (
+                <div className="rounded-lg border bg-muted/50 p-3 text-sm space-y-1">
+                  <span className="font-semibold text-xs text-muted-foreground uppercase">Twoja odpowiedź:</span>
+                  <p>{message.replyBody}</p>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <span className="text-muted-foreground text-sm">
+                  {message.role} · {message.date}
                 </span>
                 <ReplySheet message={message} />
               </div>
@@ -64,94 +55,67 @@ export function MessagesList({ messages }: { messages: MessageItem[] }) {
   )
 }
 
-function ReplySheet({ message }: { message: MessageItem }) {
+function ReplySheet({ message }: { message: DbMessage }) {
   const [open, setOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [sent, setSent] = useState(false)
-  const [pending, startTransition] = useTransition()
+  const [replyText, setReplyText] = useState(message.replyBody || "")
+  const [isPending, startTransition] = useTransition()
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const reply = String(new FormData(event.currentTarget).get("reply") ?? "")
+  const handleSendReply = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!replyText.trim() || !message.id) return
+
     startTransition(async () => {
-      const result = await replyToMessageAction(message.id, reply)
-      setError(result.ok ? null : result.error)
-      setSent(result.ok)
+      try {
+        await replyToMessageAction(message.id, replyText)
+        setOpen(false)
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : "Błąd wysyłania odpowiedzi")
+      }
     })
   }
 
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next)
-        if (next) {
-          setError(null)
-          setSent(false)
-        }
-      }}
-    >
-      <SheetTrigger render={<Button type="button" size="sm" variant={message.answered ? "outline" : "default"} />}>
-        {message.answered ? "Odpowiedz ponownie" : "Odpowiedz"}
-        <span className="sr-only">: {message.subject}</span>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger render={
+        <Button type="button" size="sm" variant={message.answered ? "outline" : "default"}>
+          {message.answered ? "Edytuj odpowiedź" : "Odpowiedz"}
+          <span className="sr-only">: {message.subject}</span>
+        </Button>
+      } />
       <SheetContent className="w-full! sm:max-w-xl!">
-        <SheetHeader className="pr-16">
-          <SheetTitle className="text-2xl leading-tight font-bold">{message.subject}</SheetTitle>
-          <SheetDescription>Odpowiedź trafi na adres e-mail podany przez autora.</SheetDescription>
+        <SheetHeader>
+          <SheetTitle className="text-xl font-bold">Odpowiedź na wiadomość</SheetTitle>
+          <SheetDescription>{message.subject} ({message.role})</SheetDescription>
         </SheetHeader>
 
-        <form id={`reply-${message.id}`} onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 pb-6 text-base">
-          <Facts
-            items={[
-              { icon: UserIcon, label: "Od", value: message.role },
-              { icon: CalendarIcon, label: "Wpłynęło", value: formatDate(message.date) },
-            ]}
-          />
-
-          <Block icon={MessageSquareIcon} title="Wiadomość">
-            <p>{message.body}</p>
-          </Block>
-
-          {sent ? null : (
-            <Field>
-              <FieldLabel htmlFor={`reply-text-${message.id}`}>Twoja odpowiedź</FieldLabel>
-              <Textarea id={`reply-text-${message.id}`} name="reply" required className="min-h-40" />
-              <FieldDescription>Pisz prosto i krótko. Podpis ROPS dodamy sami.</FieldDescription>
-            </Field>
-          )}
-
-          <div aria-live="polite">
-            {sent && (
-              <Alert role="status">
-                <CheckCircle2Icon aria-hidden />
-                <AlertTitle>Odpowiedź wysłana</AlertTitle>
-                <AlertDescription>Autor dostanie ją na swój adres e-mail.</AlertDescription>
-              </Alert>
-            )}
-            {error && (
-              <Alert variant="destructive">
-                <CircleAlertIcon aria-hidden />
-                <AlertTitle>Nie wysłano odpowiedzi</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+        <form onSubmit={handleSendReply} className="flex flex-1 flex-col gap-4 py-4">
+          <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">Treść zapytania:</span>
+            <p className="text-sm leading-relaxed">{message.body}</p>
           </div>
-        </form>
 
-        <SheetFooter className="flex-row justify-end gap-2 border-t">
-          <SheetClose render={<Button type="button" variant="outline" />}>Zamknij</SheetClose>
-          {!sent && (
-            <Button type="submit" form={`reply-${message.id}`} disabled={pending}>
-              {pending ? (
-                <Loader2Icon data-icon="inline-start" aria-hidden className="motion-safe:animate-spin" />
-              ) : (
-                <SendIcon data-icon="inline-start" aria-hidden />
-              )}
-              {pending ? "Wysyłam…" : "Wyślij odpowiedź"}
+          <div className="flex flex-col gap-2 flex-1">
+            <label htmlFor="reply" className="text-sm font-semibold">
+              Treść Twojej odpowiedzi:
+            </label>
+            <textarea
+              id="reply"
+              required
+              rows={6}
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Wpisz treść odpowiedzi..."
+              className="w-full rounded-lg border p-3 text-sm focus:ring-2 focus:ring-primary dark:bg-slate-800"
+            />
+          </div>
+
+          <SheetFooter className="pt-4 border-t">
+            <SheetClose render={<Button type="button" variant="outline">Anuluj</Button>} />
+            <Button type="submit" disabled={isPending || !replyText.trim()}>
+              {isPending ? "Wysyłanie..." : "Wyślij odpowiedź"}
             </Button>
-          )}
-        </SheetFooter>
+          </SheetFooter>
+        </form>
       </SheetContent>
     </Sheet>
   )

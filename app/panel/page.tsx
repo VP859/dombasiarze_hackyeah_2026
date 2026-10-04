@@ -1,44 +1,20 @@
 import type { Metadata } from "next"
-import { InfoIcon, PlusIcon } from "lucide-react"
+import { PlusIcon } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { getChallenges } from "@/seed"
 import { getDraftSolutions } from "@/app/actions/rops-panel-actions"
 import { getNeedsFromDb } from "@/app/actions/needs-actions"
+import { getMessagesFromDb } from "@/app/actions/messages-actions"
 
 import { NeedsPanel } from "./needs-panel"
 import { CallsTable, VerifyTable, type Call } from "./panel-tables"
+import { MessagesList } from "./messages-list"
 
 export const metadata: Metadata = { title: "Panel ROPS" }
-
-const MESSAGES = [
-  {
-    subject: "Pomysł: Klub młodych opiekunów",
-    role: "Mieszkaniec",
-    body: "Czy gmina może udostępnić salę na spotkania raz w tygodniu?",
-    date: "3 paź 2026, 14:20",
-    answered: false,
-  },
-  {
-    subject: "Zgłoszenie: Skawina",
-    role: "Samorząd",
-    body: "Prosimy o kontakt w sprawie dopasowanych innowacji.",
-    date: "3 paź 2026, 10:05",
-    answered: false,
-  },
-  {
-    subject: "Innowacja: Cyfrowy Senior",
-    role: "Organizacja",
-    body: "Dodaliśmy film z wdrożenia. Prosimy o aktualizację opisu.",
-    date: "2 paź 2026, 16:40",
-    answered: true,
-  },
-]
 
 const CALLS: Call[] = [
   { title: "Małopolskie Innowacje Społeczne 2026", deadline: "2026-11-30", applications: 4, open: true },
@@ -46,12 +22,12 @@ const CALLS: Call[] = [
 ]
 
 export default async function Page() {
-  // Pobieramy TYLKO realne rekordy z bazy Supabase
   const toVerify = await getDraftSolutions()
   const realNeeds = await getNeedsFromDb()
+  const realMessages = await getMessagesFromDb()
 
   const newNeeds = realNeeds.filter((n) => n.status === "Nowe").length
-  const unanswered = MESSAGES.filter((m) => !m.answered).length
+  const unanswered = realMessages.filter((m) => !m.answered).length
   const stats = [
     { label: "Innowacje do weryfikacji", value: toVerify.length },
     { label: "Nowe zgłoszenia potrzeb", value: newNeeds },
@@ -111,33 +87,7 @@ export default async function Page() {
         <TabsContent value="wiadomosci" className="flex flex-col gap-4">
           <h2 className="text-2xl font-bold">Wiadomości</h2>
           <p className="text-muted-foreground">Pytania od autorów pomysłów, gmin i organizacji.</p>
-          <ul className="flex flex-col gap-4">
-            {MESSAGES.map((message) => (
-              <li key={message.subject}>
-                <Card size="sm">
-                  <CardContent className="flex flex-col gap-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-lg font-semibold">{message.subject}</h3>
-                      {message.answered ? (
-                        <Badge variant="outline">Odpowiedziano</Badge>
-                      ) : (
-                        <Badge>Bez odpowiedzi</Badge>
-                      )}
-                    </div>
-                    <p>{message.body}</p>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-muted-foreground">
-                        {message.role} · {message.date}
-                      </span>
-                      <Button type="button" size="sm" variant={message.answered ? "outline" : "default"}>
-                        Odpowiedz<span className="sr-only">: {message.subject}</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
+          <MessagesList messages={realMessages} />
         </TabsContent>
 
         <TabsContent value="nabory" className="flex flex-col gap-4">
