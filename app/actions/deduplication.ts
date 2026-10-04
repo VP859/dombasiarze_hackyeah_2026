@@ -2,6 +2,7 @@
 
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { generateEmbedding } from '@/lib/ai'
+import { MIN_SIMILARITY } from '@/types/matchmaking'
 
 export interface SimilarSolution {
   id: string
@@ -21,9 +22,8 @@ export async function checkIdeaDuplicates(
 
   const supabaseAdmin = getSupabaseAdmin()
   const { data, error } = await supabaseAdmin.rpc('match_solutions', {
-    query_embedding: JSON.stringify(embedding),
-    match_threshold: 0.35,
-    match_count: 3,
+    q: JSON.stringify(embedding),
+    k: 3,
   })
 
   if (error) {
@@ -31,10 +31,13 @@ export async function checkIdeaDuplicates(
     return { isDuplicate: false, score: 0, similarSolutions: [] }
   }
 
-  const similarSolutions: SimilarSolution[] = data || []
+  const similarSolutions = ((data || []) as SimilarSolution[]).filter(
+    (s) => s.similarity >= MIN_SIMILARITY
+  )
   const topScore = similarSolutions.length > 0 ? similarSolutions[0].similarity : 0
 
   return {
+    // Niemal ten sam pomysł daje ~0,76–0,78, niepowiązany z podobnymi słowami ~0,70.
     isDuplicate: topScore > 0.75,
     score: topScore,
     similarSolutions,

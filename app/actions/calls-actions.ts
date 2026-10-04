@@ -62,6 +62,22 @@ export async function getCallsFromDb(): Promise<CallDb[]> {
   )
 }
 
+export type OpenCall = { id: string; title: string; deadline: string; rules: string | null }
+
+// Generator wniosków działa tylko w czasie naboru: nabór otwarty w panelu i termin jeszcze nie minął.
+export async function getOpenCalls(): Promise<OpenCall[]> {
+  const today = new Date().toISOString().slice(0, 10)
+  const { data, error } = await getSupabaseAdmin()
+    .from("calls")
+    .select("id, title, deadline, rules")
+    .eq("open", true)
+    .gte("deadline", today)
+    .order("deadline")
+
+  if (error) console.error("Błąd pobierania otwartych naborów:", error.message)
+  return data ?? []
+}
+
 export async function getApplicationsForCall(
   callId: string
 ): Promise<ApplicationDb[]> {
@@ -151,12 +167,14 @@ export async function getApplicationsForCall(
 export async function createCallAction(input: {
   title: string
   deadline: string
+  rules: string
 }) {
   const supabase = getSupabaseAdmin()
 
   const { error } = await supabase.from("calls").insert({
     title: input.title,
     deadline: input.deadline,
+    rules: input.rules.trim() || null,
     open: true,
   })
 

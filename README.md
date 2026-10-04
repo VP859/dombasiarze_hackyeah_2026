@@ -12,12 +12,12 @@ Gminy często tworzą od zera rozwiązania, które gdzie indziej już działają
 
 | Moduł ROPS | W aplikacji | Trasa | Stan |
 | --- | --- | --- | --- |
-| I. Matchmaking | Zgłoś problem | `/zglos` | Formularz z mapą gotowy; zapis do bazy, analiza AI i dopasowania w trakcie podpinania |
+| I. Matchmaking | Zgłoś problem | `/zglos` | Działa: analiza AI, dopasowane innowacje i podobne zgłoszenia z innych gmin (Gemini + pgvector) |
 | II. Zasobnik wiedzy | Biblioteka, wyzwania, strona innowacji | `/biblioteka`, `/innowacja/[id]`, `/wyzwania` | Działa (Supabase) |
-| III. Kreator pomysłów | Zgłoś rozwiązanie, wniosek o grant | `/kreator`, `/granty/generator` | Działa (Gemini + Supabase); rozwijanie pomysłu `/kreator/[id]` poglądowe |
-| IV. Tester innowacji | Zapisy do testu, plakat z QR, opinie | `/test/[id]`, `/test/[id]/plakat` | Plakat i opinie działają, zapisy jeszcze bez bazy |
-| V. Komunikacja | Wątek z ROPS, odpowiedzi z panelu | `/kreator/[id]`, `/panel` | Widok poglądowy; wysyłka odpowiedzi e-mailem (Resend) gotowa po stronie serwera |
-| VI. Panel administratora | Panel ROPS | `/panel` | Innowacje do weryfikacji i zgłoszenia z bazy (publikacja, zmiana statusu); wiadomości i nabory poglądowe |
+| III. Kreator pomysłów | Zgłoś rozwiązanie, fiszka z asystentem, wniosek o grant | `/kreator`, `/kreator/[id]`, `/granty/generator` | Działa (Gemini + Supabase): kanwa, asystent kreatora, pomysł trafia do weryfikacji ROPS; generator wniosków tylko w czasie naboru, dopasowany do jego zasad |
+| IV. Tester innowacji | Zapisy do testu, plakat z QR, opinie | `/test/[id]`, `/test/[id]/plakat` | Działa: zapisy w bazie z licznikiem (jeden adres raz), plakat, oceny z propozycjami usprawnień |
+| V. Komunikacja | Zadaj pytanie (ROPS albo mentor), strona sprawy, strefa mentora | `/zapytaj`, `/wiadomosci/[id]`, `/mentor`, `/panel` | Działa: pytania z innowacji, pomysłu i wyników dopasowania (partnerstwa), odpowiedź na stronie sprawy i e-mailem, liczniki spraw w menu, powiadomienia e-mail dla ROPS |
+| VI. Panel administratora | Panel ROPS | `/panel` | Działa: innowacje do weryfikacji, zgłoszenia, pytania z odpowiadaniem, nabory z zasadami i wnioskami |
 | VII. Middleman | Dostosuj do gminy | `/innowacja/[id]/gmina` | Działa (Gemini) |
 
 ### Najważniejsze funkcje
@@ -26,9 +26,10 @@ Gminy często tworzą od zera rozwiązania, które gdzie indziej już działają
 - **Biblioteka innowacji:** wyszukiwarka i filtry (wyzwanie, odbiorcy, etap), wyniki z bazy Supabase, karty z ocenami. Filtr wyzwań dopasowuje innowacje po słowach kluczowych z `seed/challenges.json`, dopóki innowacje w bazie nie mają przypisanych wyzwań.
 - **Strona innowacji:** problem, rozwiązanie, efekty, potrzebne zasoby, materiały źródłowe, oceny i formularz dodawania opinii (działa też bez JavaScriptu).
 - **Dostosuj do gminy:** gmina podaje nazwę, liczbę mieszkańców, typ, budżet i lokalne wyzwania, a asystent AI przygotowuje plan wdrożenia: kroki, możliwe bariery, budżet i źródła finansowania, wskaźniki sukcesu.
-- **Zgłaszanie problemu:** opis potrzeby także głosem (rozpoznawanie mowy w przeglądarce, Web Speech API), miejsce na mapie (OpenStreetMap), wybór wyzwań i odbiorców. Zapis do bazy z analizą AI i dopasowaniem innowacji (embeddingi + pgvector) jest w trakcie podpinania.
+- **Zgłaszanie problemu:** opis potrzeby także głosem (rozpoznawanie mowy w przeglądarce, Web Speech API), miejsce na mapie (OpenStreetMap), wybór wyzwań i odbiorców. Po wysłaniu użytkownik od razu widzi analizę AI, najlepiej dopasowane innowacje i podobne zgłoszenia z innych gmin (embeddingi Gemini + pgvector); zgłoszenie trafia do Panelu ROPS z wyzwaniami i liczbą dopasowań.
 - **Kreator pomysłów:** asystent AI układa opis pomysłu w kanwę innowacji ROPS i sprawdza, czy podobne rozwiązanie już jest w bibliotece; pomysł zapisuje się w bazie. Z zapisanego pomysłu generator przygotowuje szkic wniosku o grant pod wybrany nabór.
-- **Tester:** plakat do wydruku z kodem QR prowadzącym do zapisów na test.
+- **Tester:** zapisy na test z licznikiem i plakat do wydruku z kodem QR prowadzącym do zapisów.
+- **Komunikacja:** pytanie do ROPS albo mentora z każdej innowacji i pomysłu; autor widzi odpowiedź na stronie swojej sprawy i dostaje ją e-mailem. ROPS i mentorzy widzą w menu licznik spraw, a ROPS dostaje e-mail o każdym nowym zgłoszeniu, pomyśle i pytaniu.
 - **Panel ROPS:** weryfikacja i publikacja nowych innowacji z podglądem, zgłoszenia potrzeb z filtrami i zmianą statusu, wiadomości i nabory.
 
 ## Dostępność (WCAG 2.1 AA)
@@ -71,9 +72,17 @@ SUPABASE_SERVICE_ROLE_KEY=...
 GEMINI_API_KEY=...
 # opcjonalnie: adres, na który prowadzi kod QR na plakacie
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
-# opcjonalnie: wysyłka odpowiedzi z Panelu ROPS e-mailem
+# opcjonalnie: e-maile (odpowiedzi na pytania, dopasowania dla autorów zgłoszeń)
 RESEND_API_KEY=...
 RESEND_FROM="Podaj Dalej <onboarding@resend.dev>"
+# opcjonalnie: adres zespołu ROPS na powiadomienia o nowych zgłoszeniach, pomysłach i pytaniach
+ROPS_EMAIL=...
+```
+
+Baza: uruchom pliki z `supabase/migrations/` w Supabase → SQL Editor, a potem policz wektory do dopasowań (innowacje zatwierdzane w Panelu ROPS dostają je automatycznie):
+
+```bash
+node --env-file=.env scripts/embed.mjs
 ```
 
 Uruchom serwer deweloperski i otwórz http://localhost:3000:

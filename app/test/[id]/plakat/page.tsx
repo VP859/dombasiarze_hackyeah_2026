@@ -2,9 +2,9 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import QRCode from "qrcode"
 
-import { RatingForm } from "@/components/rating-form"
 import { Card } from "@/components/ui/card"
 import { getSolutionById } from "@/app/actions/solutions"
+import { siteUrl } from "@/lib/email"
 
 export const metadata: Metadata = {
   title: "Plakat testu",
@@ -15,8 +15,7 @@ export default async function PosterPage({ params }: PageProps<"/test/[id]/plaka
   const solution = await getSolutionById(id)
   if (!solution) notFound()
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dombasiarzehackyeah2026.vercel.app"
-  const testUrl = `${siteUrl.replace(/\/$/, "")}/test/${encodeURIComponent(id)}`
+  const testUrl = siteUrl(`/test/${encodeURIComponent(id)}`)
   const qrCode = await QRCode.toString(testUrl, {
     type: "svg",
     errorCorrectionLevel: "H",
@@ -48,10 +47,6 @@ export default async function PosterPage({ params }: PageProps<"/test/[id]/plaka
           Zeskanuj kod, aby dowiedzieć się więcej i zgłosić swój udział.
         </p>
       </Card>
-
-      <div className="print:hidden">
-        <RatingForm />
-      </div>
     </div>
   )
 }

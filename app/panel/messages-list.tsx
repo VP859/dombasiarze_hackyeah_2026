@@ -1,9 +1,16 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { type FormEvent, useState, useTransition } from "react"
+import Link from "next/link"
+import { CheckCircle2Icon, CircleAlertIcon, InboxIcon } from "lucide-react"
+
+import { replyToMessageAction, type DbMessage, type ReplyState } from "@/app/actions/messages-actions"
+import { EmptyState } from "@/components/empty-state"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Field, FieldLabel } from "@/components/ui/field"
 import {
   Sheet,
   SheetClose,
@@ -14,35 +21,47 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { Textarea } from "@/components/ui/textarea"
 
-import { replyToMessageAction, type DbMessage } from "@/app/actions/messages-actions"
-
+// Lista pytań z odpowiadaniem — w Panelu ROPS (wszystkie) i na stronie mentora (tylko do mentorów).
 export function MessagesList({ messages }: { messages: DbMessage[] }) {
+  if (messages.length === 0) {
+    return <EmptyState icon={InboxIcon} title="Brak pytań" description="Nowe pytania pojawią się tutaj." />
+  }
+
   return (
     <ul className="flex flex-col gap-4">
       {messages.map((message) => (
-        <li key={message.id || message.subject}>
+        <li key={message.id}>
           <Card size="sm">
             <CardContent className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-lg font-semibold">{message.subject}</h3>
-                {message.answered ? (
-                  <Badge variant="outline">Odpowiedziano</Badge>
-                ) : (
-                  <Badge>Bez odpowiedzi</Badge>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary">{message.recipient === "mentor" ? "Do mentora" : "Do ROPS"}</Badge>
+                  {message.answered ? (
+                    <Badge variant="outline">Odpowiedziano</Badge>
+                  ) : (
+                    <Badge>Bez odpowiedzi</Badge>
+                  )}
+                </div>
               </div>
-              <p>{message.body}</p>
-              
+              <p className="whitespace-pre-line">{message.body}</p>
+              {message.link && (
+                <Link href={message.link} className="w-fit underline underline-offset-4">
+                  Zobacz sprawę, której dotyczy pytanie
+                </Link>
+              )}
+
               {message.replyBody && (
-                <div className="rounded-lg border bg-muted/50 p-3 text-sm space-y-1">
-                  <span className="font-semibold text-xs text-muted-foreground uppercase">Twoja odpowiedź:</span>
-                  <p>{message.replyBody}</p>
+                <div className="flex flex-col gap-1 rounded-lg border bg-muted/50 p-3">
+                  <span className="text-sm font-semibold text-muted-foreground">Odpowiedź:</span>
+                  <p className="whitespace-pre-line">{message.replyBody}</p>
                 </div>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <span className="text-muted-foreground text-sm">
+                <span className="text-sm text-muted-foreground">
                   {message.role} · {message.date}
                 </span>
                 <ReplySheet message={message} />
@@ -55,64 +74,78 @@ export function MessagesList({ messages }: { messages: DbMessage[] }) {
   )
 }
 
+const replyStatus = (result: Extract<ReplyState, { ok: true }>, hasEmail: boolean) =>
+  result.emailSent
+    ? "Odpowiedź zapisana i wysłana na e-mail autora."
+    : hasEmail
+      ? "Odpowiedź zapisana. E-mail nie wyszedł (wysyłka nie jest skonfigurowana) — autor zobaczy odpowiedź na stronie swojego pytania."
+      : "Odpowiedź zapisana. Autor nie podał e-maila — zobaczy odpowiedź na stronie swojego pytania."
+
 function ReplySheet({ message }: { message: DbMessage }) {
   const [open, setOpen] = useState(false)
-  const [replyText, setReplyText] = useState(message.replyBody || "")
+  const [replyText, setReplyText] = useState(message.replyBody ?? "")
+  const [result, setResult] = useState<ReplyState | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const handleSendReply = (e: React.FormEvent) => {
+  const handleSendReply = (e: FormEvent) => {
     e.preventDefault()
-    if (!replyText.trim() || !message.id) return
-
-    startTransition(async () => {
-      try {
-        await replyToMessageAction(message.id, replyText)
-        setOpen(false)
-      } catch (err: unknown) {
-        alert(err instanceof Error ? err.message : "Błąd wysyłania odpowiedzi")
-      }
-    })
+    startTransition(async () => setResult(await replyToMessageAction(message.id, replyText)))
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={
-        <Button type="button" size="sm" variant={message.answered ? "outline" : "default"}>
-          {message.answered ? "Edytuj odpowiedź" : "Odpowiedz"}
-          <span className="sr-only">: {message.subject}</span>
-        </Button>
-      } />
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (next) setResult(null)
+      }}
+    >
+      <SheetTrigger
+        render={
+          <Button type="button" size="sm" variant={message.answered ? "outline" : "default"}>
+            {message.answered ? "Edytuj odpowiedź" : "Odpowiedz"}
+            <span className="sr-only">: {message.subject}</span>
+          </Button>
+        }
+      />
       <SheetContent className="w-full! sm:max-w-xl!">
         <SheetHeader>
-          <SheetTitle className="text-xl font-bold">Odpowiedź na wiadomość</SheetTitle>
-          <SheetDescription>{message.subject} ({message.role})</SheetDescription>
+          <SheetTitle className="text-xl font-bold">Odpowiedź na pytanie</SheetTitle>
+          <SheetDescription>
+            {message.subject} ({message.role})
+          </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={handleSendReply} className="flex flex-1 flex-col gap-4 py-4">
-          <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Treść zapytania:</span>
-            <p className="text-sm leading-relaxed">{message.body}</p>
+        <form onSubmit={handleSendReply} className="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-4">
+            <span className="text-sm font-semibold text-muted-foreground">Pytanie:</span>
+            <p className="whitespace-pre-line">{message.body}</p>
           </div>
 
-          <div className="flex flex-col gap-2 flex-1">
-            <label htmlFor="reply" className="text-sm font-semibold">
-              Treść Twojej odpowiedzi:
-            </label>
-            <textarea
-              id="reply"
+          <Field>
+            <FieldLabel htmlFor={`reply-${message.id}`}>Twoja odpowiedź</FieldLabel>
+            <Textarea
+              id={`reply-${message.id}`}
               required
-              rows={6}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Wpisz treść odpowiedzi..."
-              className="w-full rounded-lg border p-3 text-sm focus:ring-2 focus:ring-primary dark:bg-slate-800"
+              className="min-h-40"
             />
+          </Field>
+
+          <div aria-live="polite">
+            {result && (
+              <Alert variant={result.ok ? "default" : "destructive"}>
+                {result.ok ? <CheckCircle2Icon aria-hidden /> : <CircleAlertIcon aria-hidden />}
+                <AlertDescription>{result.ok ? replyStatus(result, message.hasEmail) : result.error}</AlertDescription>
+              </Alert>
+            )}
           </div>
 
-          <SheetFooter className="pt-4 border-t">
-            <SheetClose render={<Button type="button" variant="outline">Anuluj</Button>} />
+          <SheetFooter className="mt-auto border-t px-0">
+            <SheetClose render={<Button type="button" variant="outline">{result?.ok ? "Zamknij" : "Anuluj"}</Button>} />
             <Button type="submit" disabled={isPending || !replyText.trim()}>
-              {isPending ? "Wysyłanie..." : "Wyślij odpowiedź"}
+              {isPending ? "Wysyłanie…" : "Wyślij odpowiedź"}
             </Button>
           </SheetFooter>
         </form>

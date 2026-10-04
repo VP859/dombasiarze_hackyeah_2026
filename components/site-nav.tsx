@@ -6,6 +6,7 @@ import { useState } from "react"
 import { MenuIcon } from "lucide-react"
 
 import { RoleSwitcher } from "@/components/role-switcher"
+import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import type { Role } from "@/lib/role"
@@ -16,15 +17,25 @@ const LINKS = [
   { href: "/kreator", label: "Zgłoś rozwiązanie" },
   { href: "/biblioteka", label: "Biblioteka" },
   { href: "/wyzwania", label: "Wyzwania" },
+  { href: "/zapytaj", label: "Zadaj pytanie" },
 ]
 
-export function SiteNav({ role }: { role: Role }) {
+// Skrzynka roli: Panel ROPS widzi tylko ROPS, pytania do mentorów — tylko Ekspert.
+// Te role odpowiadają na pytania, więc skrzynka zastępuje im „Zadaj pytanie”.
+const INBOX: Partial<Record<Role, { href: string; label: string }>> = {
+  admin: { href: "/panel", label: "Panel ROPS" },
+  expert: { href: "/mentor", label: "Strefa mentora" },
+}
+
+/** inbox — ile spraw czeka na rolę (nowe zgłoszenia, pomysły, pytania bez odpowiedzi). */
+export function SiteNav({ role, inbox }: { role: Role; inbox: number }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  // Panel ROPS widzi w menu tylko rola ROPS.
-  const links = role === "admin" ? [...LINKS, { href: "/panel", label: "Panel ROPS" }] : LINKS
+  const links: { href: string; label: string; count?: number }[] = INBOX[role]
+    ? [...LINKS.filter((link) => link.href !== "/zapytaj"), { ...INBOX[role], count: inbox }]
+    : LINKS
 
-  const items = links.map(({ href, label }) => (
+  const items = links.map(({ href, label, count }) => (
     <li key={href}>
       <Link
         href={href}
@@ -32,10 +43,16 @@ export function SiteNav({ role }: { role: Role }) {
         aria-current={pathname.startsWith(href) ? "page" : undefined}
         className={cn(
           buttonVariants({ variant: "ghost" }),
-          "w-full justify-start px-3 decoration-2 underline-offset-8 aria-[current=page]:underline"
+          "relative w-full justify-start px-3 decoration-2 underline-offset-8 aria-[current=page]:underline"
         )}
       >
         {label}
+        {/* Na szerokim ekranie w rogu linku, bez zajmowania miejsca — inaczej nagłówek ROPS zawija się do dwóch wierszy. */}
+        {!!count && (
+          <Badge className="ml-1 min-w-5 px-1 xl:absolute xl:-top-1.5 xl:-right-1.5 xl:ml-0">
+            <span className="sr-only">, czeka spraw:</span> {count}
+          </Badge>
+        )}
       </Link>
     </li>
   ))

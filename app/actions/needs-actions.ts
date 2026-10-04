@@ -25,9 +25,10 @@ export async function getNeedsFromDb(): Promise<Need[]> {
       text?: string | null
       author_role?: string | null
       role?: string | null
-      challenge_ids?: string[] | null
+      challenges?: string[] | null
       audiences?: string[] | null
       status?: NeedStatus | null
+      matches?: number | null
       created_at?: string | null
       author_email?: string | null
       email?: string | null
@@ -45,12 +46,10 @@ export async function getNeedsFromDb(): Promise<Need[]> {
       gmina: typedRow.gmina || "Nieokreślona",
       text: typedRow.description || typedRow.text || "",
       role,
-      challenges: Array.isArray(typedRow.challenge_ids)
-        ? typedRow.challenge_ids
-        : [],
+      challenges: Array.isArray(typedRow.challenges) ? typedRow.challenges : [],
       audiences: Array.isArray(typedRow.audiences) ? typedRow.audiences : [],
       status: (typedRow.status as NeedStatus) || "Nowe",
-      matches: 0,
+      matches: typedRow.matches ?? 0,
       date: typedRow.created_at
         ? typedRow.created_at.split("T")[0]
         : new Date().toISOString().split("T")[0],

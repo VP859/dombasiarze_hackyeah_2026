@@ -1,7 +1,7 @@
 "use server"
 
 import { GoogleGenAI, Type } from "@google/genai"
-import { MatchmakingAnalysis } from "@/types/matchmaking"
+import type { MatchmakingAnalysis } from "@/types/matchmaking"
 
 function createAiClient() {
   const apiKey = process.env.GEMINI_API_KEY
@@ -12,13 +12,18 @@ function createAiClient() {
   return new GoogleGenAI({ apiKey })
 }
 
-export async function generateEmbedding(text: string): Promise<number[]> {
+// Zapytania (zgłoszenia, pomysły) i dokumenty (innowacje) mają osobne typy zadań — tak Gemini trafniej je dopasowuje.
+export async function generateEmbedding(
+  text: string,
+  taskType: "RETRIEVAL_QUERY" | "RETRIEVAL_DOCUMENT" = "RETRIEVAL_QUERY"
+): Promise<number[]> {
   const ai = createAiClient()
   const response = await ai.models.embedContent({
     model: "gemini-embedding-001",
     contents: text,
     config: {
       outputDimensionality: 768,
+      taskType,
     },
   })
   const embeddingValues = response.embeddings?.[0]?.values
@@ -28,6 +33,18 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   }
 
   return embeddingValues
+}
+
+// Ten sam tekst innowacji przy zatwierdzaniu w Panelu ROPS i w scripts/embed.mjs.
+export async function embedSolution(solution: {
+  title: string
+  problem: string | null
+  method: string | null
+}): Promise<number[]> {
+  return generateEmbedding(
+    `${solution.title}. ${solution.problem ?? ""} ${solution.method ?? ""}`,
+    "RETRIEVAL_DOCUMENT"
+  )
 }
 
 export async function analyzeNeed(
@@ -156,6 +173,68 @@ Grupa docelowa: ${audience || "Nieokreślona dokładnie"}`
   return JSON.parse(response.text) as CanvasData
 }
 
+export interface IdeaTips {
+  questions: string[]
+  unconventional_ideas: string[]
+  next_steps: string[]
+}
+
+// Asystent kreatora: pytania, które pomagają rozwinąć pomysł, nietuzinkowe warianty i pierwsze kroki.
+export async function generateIdeaTips(idea: {
+  title: string
+  essence: string | null
+  audience: string | null
+  stage: string | null
+  canvas: unknown
+}): Promise<IdeaTips> {
+  const ai = createAiClient()
+  const prompt = `Pomóż autorowi rozwinąć pomysł na innowację społeczną w Małopolsce.
+
+Tytuł: ${idea.title}
+Istota pomysłu: ${idea.essence ?? ""}
+Dla kogo: ${idea.audience || "Nieokreślone"}
+Etap: ${idea.stage ?? "pomysł"}
+Kanwa innowacji: ${JSON.stringify(idea.canvas ?? {})}`
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3.1-flash-lite",
+    contents: prompt,
+    config: {
+      systemInstruction:
+        "Jesteś mentorem w Małopolskim Hubie Innowacji Społecznych. Piszesz po polsku, prostym językiem, krótkimi zdaniami, zwracając się do autora na „Ty”. Podpowiadasz konkretnie, bez ogólników. Odpowiadaj wyłącznie w formacie JSON.",
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          questions: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "3 pytania, które pomogą autorowi doprecyzować pomysł",
+          },
+          unconventional_ideas: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description:
+              "3 nietuzinkowe warianty lub rozszerzenia pomysłu, np. z innej branży albo z udziałem nieoczywistych partnerów",
+          },
+          next_steps: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "3 pierwsze kroki do przetestowania pomysłu w małej skali w ciągu miesiąca",
+          },
+        },
+        required: ["questions", "unconventional_ideas", "next_steps"],
+      },
+    },
+  })
+
+  if (!response.text) {
+    throw new Error("Brak odpowiedzi z modelu Gemini API.")
+  }
+
+  return JSON.parse(response.text) as IdeaTips
+}
+
 export interface GrantApplicationContent {
   project_title: string
   executive_summary: string
@@ -187,7 +266,7 @@ REGULAMIN NABORU:
     contents: prompt,
     config: {
       systemInstruction:
-        "Jesteś doradcą ds. pozyskiwania funduszy w Małopolskim Hubie Innowacji Społecznych. Generujesz szkice wniosków grantowych na podstawie regulaminów naborów. Odpowiadaj wyłącznie w formacie JSON.",
+        "Jesteś doradcą ds. pozyskiwania funduszy w Małopolskim Hubie Innowacji Społecznych. Generujesz szkice wniosków grantowych na podstawie regulaminów naborów. Ściśle trzymaj się limitów z regulaminu: suma kosztorysu nie może przekroczyć maksymalnej kwoty grantu, a udziały procentowe kosztów (np. osobowych) muszą mieścić się w podanych granicach. Odpowiadaj wyłącznie w formacie JSON.",
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
