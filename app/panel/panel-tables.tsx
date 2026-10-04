@@ -17,7 +17,12 @@ import {
 } from "@/components/ui/sheet"
 import { STAGES } from "@/seed"
 import { approveSolutionAction } from "@/app/actions/rops-panel-actions"
-import { toggleCallStatusAction, getApplicationsForCall, type CallDb, type ApplicationDb } from "@/app/actions/calls-actions"
+import {
+  toggleCallStatusAction,
+  getApplicationsForCall,
+  type CallDb,
+  type ApplicationDb,
+} from "@/app/actions/calls-actions"
 
 import { formatDate } from "./format"
 import { PreviewSheet, type DraftInnovation } from "./preview-sheet"
@@ -32,7 +37,9 @@ function CallStatusBadge({ call }: { call: Call }) {
       try {
         await toggleCallStatusAction(call.id, call.open)
       } catch (err: unknown) {
-        alert((err as { message: string }).message || "Błąd zmiany statusu naboru")
+        alert(
+          (err as { message: string }).message || "Błąd zmiany statusu naboru"
+        )
       }
     })
   }
@@ -81,26 +88,57 @@ function ApplicationsSheet({ call }: { call: Call }) {
       <SheetContent className="w-full! sm:max-w-xl!">
         <SheetHeader>
           <SheetTitle className="text-xl font-bold">Wnioski w naborze: {call.title}</SheetTitle>
-          <SheetDescription>Złożone aplikacje grantowe ({applications.length})</SheetDescription>
+          <SheetDescription>Liczba wniosków w bazie: {applications.length}</SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto py-4">
           {loading ? (
             <p className="text-sm text-muted-foreground text-center py-8">Ładowanie wniosków...</p>
           ) : applications.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Brak złożonych wniosków w tym naborze.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">Brak zapisanych wniosków dla tego naboru w tabeli applications.</p>
           ) : (
             applications.map((app) => {
-              const summary = (app.content as { summary?: string } | null)?.summary
+              const content = app.content as {
+                executive_summary?: string
+                summary?: string
+                budget_breakdown?: unknown
+              } | null
+              const summary = content?.executive_summary || content?.summary || "Brak opisu wniosku."
+              const budget = content?.budget_breakdown
 
               return (
-                <div key={app.id} className="rounded-lg border p-4 space-y-2 bg-muted/30">
+                <div key={app.id} className="rounded-lg border p-4 space-y-3 bg-muted/30">
                   <div className="flex justify-between items-start gap-2">
-                    <h4 className="font-semibold text-base">{app.ideaTitle}</h4>
+                    <h4 className="font-semibold text-base text-primary">{app.ideaTitle}</h4>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">{app.createdAt}</span>
                   </div>
+
                   <p className="text-xs text-muted-foreground">Autor: {app.authorEmail}</p>
-                  {summary && <p className="text-sm mt-2 border-t pt-2">{summary}</p>}
+
+                  <div className="text-sm space-y-1 border-t pt-2">
+                    <span className="font-semibold text-xs text-muted-foreground uppercase">Streszczenie:</span>
+                    <p className="leading-relaxed">{summary}</p>
+                  </div>
+
+                  {Array.isArray(budget) && budget.length > 0 && (
+                    <div className="text-xs border-t pt-2 space-y-1">
+                      <span className="font-semibold text-muted-foreground uppercase">Kosztorys:</span>
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {budget.map((entry: unknown, idx: number) => {
+                          const b = entry && typeof entry === "object"
+                            ? entry as Record<string, unknown>
+                            : {}
+                          const estimatedCost = b.estimated_cost_pln
+
+                          return (
+                            <li key={idx}>
+                              {String(b.item ?? "")}: <strong>{typeof estimatedCost === "number" ? estimatedCost.toLocaleString("pl-PL") : "—"} PLN</strong>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )
             })
@@ -124,7 +162,9 @@ function PublishButton({ item }: { item: DraftInnovation }) {
       try {
         await approveSolutionAction(item.id!)
       } catch (err: unknown) {
-        alert((err as { message: string }).message || "Błąd zatwierdzania innowacji")
+        alert(
+          (err as { message: string }).message || "Błąd zatwierdzania innowacji"
+        )
       }
     })
   }
@@ -150,7 +190,9 @@ const verifyColumns: Column<DraftInnovation>[] = [
     cell: (item) => (
       <div className="flex flex-col gap-1">
         <span className="font-medium">{item.title}</span>
-        <span className="text-sm text-muted-foreground">{item.organization}</span>
+        <span className="text-sm text-muted-foreground">
+          {item.organization}
+        </span>
       </div>
     ),
   },
@@ -165,14 +207,20 @@ const verifyColumns: Column<DraftInnovation>[] = [
     header: "Źródło",
     className: "hidden lg:table-cell",
     sortValue: (item) => item.source,
-    cell: (item) => <span className="text-muted-foreground">{item.source}</span>,
+    cell: (item) => (
+      <span className="text-muted-foreground">{item.source}</span>
+    ),
   },
   {
     id: "date",
     header: "Dodano",
     className: "hidden md:table-cell",
     sortValue: (item) => item.date,
-    cell: (item) => <span className="whitespace-nowrap text-muted-foreground">{formatDate(item.date)}</span>,
+    cell: (item) => (
+      <span className="whitespace-nowrap text-muted-foreground">
+        {formatDate(item.date)}
+      </span>
+    ),
   },
   {
     id: "actions",
@@ -212,7 +260,11 @@ const callColumns: Column<Call>[] = [
     header: "Termin",
     className: "hidden md:table-cell",
     sortValue: (call) => call.deadline,
-    cell: (call) => <span className="whitespace-nowrap text-muted-foreground">do {formatDate(call.deadline)}</span>,
+    cell: (call) => (
+      <span className="whitespace-nowrap text-muted-foreground">
+        do {formatDate(call.deadline)}
+      </span>
+    ),
   },
   {
     id: "applications",
