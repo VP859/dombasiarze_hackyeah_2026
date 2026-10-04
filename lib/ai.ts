@@ -15,7 +15,7 @@ function createAiClient() {
 export async function generateEmbedding(text: string): Promise<number[]> {
   const ai = createAiClient()
   const response = await ai.models.embedContent({
-    model: "gemini-embedding-001",
+    model: "text-embedding-004",
     contents: text,
     config: {
       outputDimensionality: 768,
@@ -41,7 +41,7 @@ Opis zgłoszenia:
 "${description}"`
 
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-3.1-flash",
     contents: prompt,
     config: {
       systemInstruction:
@@ -108,7 +108,7 @@ Istota pomysłu: ${essence}
 Grupa docelowa: ${audience || "Nieokreślona dokładnie"}`
 
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-2.5-flash",
     contents: prompt,
     config: {
       systemInstruction:
@@ -183,7 +183,7 @@ REGULAMIN NABORU:
 - Zasady/Regulamin: ${call.rules}`
 
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-2.5-flash",
     contents: prompt,
     config: {
       systemInstruction:
@@ -271,7 +271,7 @@ DANE ŹRÓDŁOWE:
 ${extraContext ? `- Kontekst dodatkowy: ${extraContext}` : ""}`
 
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-2.5-flash",
     contents: prompt,
     config: {
       systemInstruction:
@@ -327,7 +327,7 @@ ${extraContext ? `- Kontekst dodatkowy: ${extraContext}` : ""}`
   })
 
   if (!response.text) {
-    throw new Error("Brak odpowiedzi z modeli Gemini API.")
+    throw new Error("Brak odpowiedzi z modelu Gemini API.")
   }
 
   return JSON.parse(response.text) as SolutionDraft

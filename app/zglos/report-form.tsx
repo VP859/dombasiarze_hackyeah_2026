@@ -1,66 +1,86 @@
-"use client";
+"use client"
 
+import { type FormEvent, useCallback, useState, useTransition } from "react"
+import dynamic from "next/dynamic"
+import { CheckCircle2Icon, Loader2Icon } from "lucide-react"
 
-import { type FormEvent, useCallback, useState } from "react";
-import dynamic from "next/dynamic";
-import { CheckCircle2Icon } from "lucide-react";
-
-import type { OperationLocation } from "@/components/Map";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { getChallenges, REPORT_AUDIENCES, REPORT_ROLES, type ReportRole } from "@/seed";
+import type { OperationLocation } from "@/components/Map"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import {
+  getChallenges,
+  REPORT_AUDIENCES,
+  REPORT_ROLES,
+  type ReportRole,
+} from "@/seed"
+import { processNeedAction } from "@/app/actions/matchmaking"
 
 const Map = dynamic(() => import("@/components/Map"), {
   ssr: false,
-});
+})
 
-// Pola nazwane jak w processNeedAction (description, gmina, author_role, author_email),
-// żeby podpięcie zapisu do bazy było jedną zmianą.
-const FORM_ID = "report-form";
+const FORM_ID = "report-form"
 
 const CHIP =
-  "flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-2 has-checked:border-primary has-checked:bg-muted";
+  "flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-2 has-checked:border-primary has-checked:bg-muted"
 
-// Mniejsze kafelki do zaznaczania wielu opcji — wysokość zostaje 44 px (cel dotyku).
 const TAG =
-  "flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-1.5 text-base has-checked:border-primary has-checked:bg-muted";
+  "flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-1.5 text-base has-checked:border-primary has-checked:bg-muted"
 
 export function ReportForm({ defaultRole }: { defaultRole: ReportRole }) {
-  const [reportText, setReportText] = useState("");
-
-  const [mapLocation, setMapLocation] = useState<OperationLocation | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [reportText, setReportText] = useState("")
+  const [mapLocation, setMapLocation] = useState<OperationLocation | null>(null)
+  const [submitted, setSubmitted] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   const handleMapLocationChange = useCallback(
     (location: OperationLocation | null) => setMapLocation(location),
     []
-  );
-  // ponytail: na razie tylko log — zapis do bazy z analizą AI to processNeedAction (app/actions/matchmaking.ts).
+  )
+
   const submitReport = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    console.log("Zgłoszenie:", {
-      description: reportText.trim(),
-      challenges: data.getAll("challenge"),
-      audiences: data.getAll("audience"),
-      gmina: mapLocation?.municipality ?? "",
-      author_role: data.get("author_role"),
-      author_email: data.get("author_email"),
-      location: mapLocation,
-    });
-    setSubmitted(true);
-  };
+    event.preventDefault()
+    setErrorMessage(null)
+    setSubmitted(false)
+
+    const formData = new FormData(event.currentTarget)
+
+    startTransition(async () => {
+      try {
+        await processNeedAction(null, formData)
+        setSubmitted(true)
+      } catch (err: unknown) {
+        console.error("Błąd zapisu zgłoszenia:", err)
+        setErrorMessage(
+          err instanceof Error && err.message
+            ? err.message
+            : "Wystąpił błąd podczas zapisywania zgłoszenia w bazie."
+        )
+      }
+    })
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-4">
-        <p className="text-sm font-semibold tracking-wider text-primary uppercase">Zgłoś problem</p>
-        <h1 className="text-3xl font-bold text-balance md:text-4xl">Na czym polega Twój problem?</h1>
+        <p className="text-sm font-semibold tracking-wider text-primary uppercase">
+          Zgłoś problem
+        </p>
+        <h1 className="text-3xl font-bold text-balance md:text-4xl">
+          Na czym polega Twój problem?
+        </h1>
         <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
-          Opisz go własnymi słowami albo nagraj głosem. Pokażemy innowacje, które rozwiązały podobny
-          problem w innych gminach.
+          Opisz go własnymi słowami albo nagraj głosem. Pokażemy innowacje,
+          które rozwiązały podobny problem w innych gminach.
         </p>
       </div>
 
@@ -78,14 +98,17 @@ export function ReportForm({ defaultRole }: { defaultRole: ReportRole }) {
             onChange={(event) => setReportText(event.target.value)}
             placeholder="Np. seniorzy z sołectw nie mają jak dojechać do lekarza"
           />
-          <FieldDescription>Możesz też kliknąć mikrofon w polu i powiedzieć, na czym polega problem.</FieldDescription>
+          <FieldDescription>
+            Możesz też kliknąć mikrofon w polu i powiedzieć, na czym polega
+            problem.
+          </FieldDescription>
         </Field>
 
         <FieldSet>
           <FieldLegend>Czego dotyczy problem? (opcjonalnie)</FieldLegend>
           <FieldDescription>
-            Zaznacz wszystko, co pasuje. Nie musisz, ale to pomaga pracownikom ROPS szybciej ocenić
-            zgłoszenie i dobrać rozwiązanie.
+            Zaznacz wszystko, co pasuje. Nie musisz, ale to pomaga pracownikom
+            ROPS szybciej ocenić zgłoszenie i dobrać rozwiązanie.
           </FieldDescription>
           <div className="flex flex-wrap gap-2">
             {getChallenges().map((challenge) => (
@@ -106,7 +129,8 @@ export function ReportForm({ defaultRole }: { defaultRole: ReportRole }) {
         <FieldSet>
           <FieldLegend>Kogo dotyczy? (opcjonalnie)</FieldLegend>
           <FieldDescription>
-            Dzięki temu pracownicy ROPS wiedzą, komu pomóc, i łatwiej znajdą innowację dla tej grupy.
+            Dzięki temu pracownicy ROPS wiedzą, komu pomóc, i łatwiej znajdą
+            innowację dla tej grupy.
           </FieldDescription>
           <div className="flex flex-wrap gap-2">
             {REPORT_AUDIENCES.map((audience) => (
@@ -129,7 +153,8 @@ export function ReportForm({ defaultRole }: { defaultRole: ReportRole }) {
         <div className="flex flex-col gap-2">
           <h2 className="text-xl font-bold">2. Gdzie występuje problem?</h2>
           <p className="text-sm text-muted-foreground">
-            Kliknij na mapie miejsce, którego dotyczy zgłoszenie, i ustaw obszar.
+            Kliknij na mapie miejsce, którego dotyczy zgłoszenie, i ustaw
+            obszar.
           </p>
         </div>
         <Map onLocationChange={handleMapLocationChange} />
@@ -137,11 +162,15 @@ export function ReportForm({ defaultRole }: { defaultRole: ReportRole }) {
           type="hidden"
           name="gmina"
           form={FORM_ID}
-          value={mapLocation?.municipality ?? ""}
+          value={mapLocation?.municipality ?? mapLocation?.city ?? ""}
         />
       </section>
 
-      <form id={FORM_ID} onSubmit={submitReport} className="flex flex-col gap-6">
+      <form
+        id={FORM_ID}
+        onSubmit={submitReport}
+        className="flex flex-col gap-6"
+      >
         <h2 className="text-xl font-bold">3. O Tobie</h2>
 
         <FieldSet>
@@ -176,7 +205,10 @@ export function ReportForm({ defaultRole }: { defaultRole: ReportRole }) {
             autoComplete="email"
             placeholder="np. jan@example.com"
           />
-          <FieldDescription>Wyślemy na niego dopasowane rozwiązania. Nie pokazujemy go publicznie.</FieldDescription>
+          <FieldDescription>
+            Wyślemy na niego dopasowane rozwiązania. Nie pokazujemy go
+            publicznie.
+          </FieldDescription>
         </Field>
 
         <Field orientation="horizontal">
@@ -193,20 +225,41 @@ export function ReportForm({ defaultRole }: { defaultRole: ReportRole }) {
         </Field>
 
         <div className="flex flex-col gap-4 border-t pt-6">
-          <Button type="submit" size="lg" className="w-full sm:w-auto sm:self-start">
-            Wyślij zgłoszenie
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isPending}
+            className="w-full sm:w-auto sm:self-start"
+          >
+            {isPending ? (
+              <>
+                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                Wysyłanie zgłoszenia...
+              </>
+            ) : (
+              "Wyślij zgłoszenie"
+            )}
           </Button>
+
           {submitted && (
             <Alert role="status">
               <CheckCircle2Icon aria-hidden />
-              <AlertTitle>Zgłoszenie jest kompletne</AlertTitle>
+              <AlertTitle>Zgłoszenie zostało wysłane!</AlertTitle>
               <AlertDescription>
-                Wersja demonstracyjna: dane są gotowe do wysłania, ale jeszcze nie zapisujemy ich w bazie.
+                Zgłoszenie zostało pomyślnie zapisane w bazie danych. Trafiło do
+                zakładki &quot;Zgłoszenia&quot; w Panelu ROPS.
               </AlertDescription>
+            </Alert>
+          )}
+
+          {errorMessage && (
+            <Alert variant="destructive" role="alert">
+              <AlertTitle>Błąd wysyłania zgłoszenia</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
           )}
         </div>
       </form>
     </div>
-  );
+  )
 }
