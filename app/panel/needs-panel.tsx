@@ -75,7 +75,7 @@ function StatusSelector({ need }: { need: Need }) {
   }
 
   return (
-    <div className="w-32">
+    <div className="w-40">
       <Select
         value={currentStatus}
         onValueChange={handleStatusChange}
@@ -83,7 +83,7 @@ function StatusSelector({ need }: { need: Need }) {
       >
         <SelectTrigger
           aria-label={`Status zgłoszenia: ${need.gmina}`}
-          className={`h-8 text-xs ${
+          className={`w-full ${
             currentStatus === "Nowe"
               ? "border-green-300 bg-green-400 text-black font-bold"
               : currentStatus === "Zamknięte"

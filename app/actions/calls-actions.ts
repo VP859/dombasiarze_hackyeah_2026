@@ -11,15 +11,16 @@ export type CallDb = {
   open: boolean
 }
 
+export type ApplicationStatus = "submitted" | "approved" | "rejected"
+
 export type ApplicationDb = {
   id: string
   ideaTitle: string
   authorEmail: string
-  createdAt: string
   content: unknown
+  /** null = w tabeli applications nie ma jeszcze kolumny status */
+  status: ApplicationStatus | null
 }
-
-const FALLBACK_CALL_ID = "11111111-1111-1111-1111-111111111111"
 
 export async function getCallsFromDb(): Promise<CallDb[]> {
   const supabase = getSupabaseAdmin()
@@ -38,27 +39,9 @@ export async function getCallsFromDb(): Promise<CallDb[]> {
     .from("applications")
     .select("id, call_id")
 
-  // Znajdujemy domyślny główny nabór (np. Małopolskie Innowacje Społeczne)
-  const defaultCall = callsData?.find((c) => c.open) || callsData?.[0]
-  const defaultCallId = defaultCall?.id
-
   const countMap: Record<string, number> = {}
-
-  if (appsData) {
-    for (const app of appsData) {
-      let targetCallId = app.call_id
-
-      if (
-        (!targetCallId || targetCallId === FALLBACK_CALL_ID) &&
-        defaultCallId
-      ) {
-        targetCallId = defaultCallId
-      }
-
-      if (targetCallId) {
-        countMap[targetCallId] = (countMap[targetCallId] || 0) + 1
-      }
-    }
+  for (const app of appsData ?? []) {
+    if (app.call_id) countMap[app.call_id] = (countMap[app.call_id] || 0) + 1
   }
 
   return (callsData || []).map(
@@ -84,41 +67,23 @@ export async function getApplicationsForCall(
 ): Promise<ApplicationDb[]> {
   const supabase = getSupabaseAdmin()
 
-  const { data: allApps, error: appsError } = await supabase
-    .from("applications")
-    .select("id, created_at, content, idea_id, call_id")
-    .order("created_at", { ascending: false })
+  // Tabela applications nie ma kolumny created_at — wybieramy tylko istniejące kolumny.
+  const query = (columns: string) => supabase.from("applications").select(columns).eq("call_id", callId)
+  let { data, error: appsError } = await query("id, content, idea_id, status")
+  // Bez kolumny status (SQL jeszcze nie uruchomiony) wnioski i tak się wyświetlają, tylko bez statusu.
+  if (appsError?.code === "42703") ({ data, error: appsError } = await query("id, content, idea_id"))
 
-  if (appsError || !allApps) {
-    console.error("Błąd pobierania wniosków:", appsError?.message)
+  if (appsError) {
+    console.error("Błąd pobierania wniosków:", appsError.message)
     return []
   }
 
-  type ApplicationRow = {
+  const appsForThisCall = (data ?? []) as unknown as {
     id: string
-    created_at: string | null
     content: unknown
     idea_id: string | null
-    call_id: string | null
-  }
-
-  const { data: firstCall } = await supabase
-    .from("calls")
-    .select("id")
-    .limit(1)
-    .maybeSingle()
-  const mainCallId = firstCall?.id
-
-  const appsForThisCall = (allApps as ApplicationRow[]).filter((app) => {
-    if (app.call_id === callId) return true
-    if (
-      (app.call_id === FALLBACK_CALL_ID || !app.call_id) &&
-      callId === mainCallId
-    )
-      return true
-    return false
-  })
-
+    status?: ApplicationStatus
+  }[]
   if (appsForThisCall.length === 0) {
     return []
   }
@@ -177,10 +142,8 @@ export async function getApplicationsForCall(
           ? content.project_title
           : idea?.title || "Wniosek Grantowy",
       authorEmail: idea?.author_email || "Brak danych autora",
-      createdAt: row.created_at
-        ? new Date(row.created_at).toLocaleDateString("pl-PL")
-        : "",
       content,
+      status: row.status ?? null,
     }
   })
 }
@@ -220,4 +183,30 @@ export async function toggleCallStatusAction(
   }
 
   revalidatePath("/panel")
+}
+
+const STATUSES: ApplicationStatus[] = ["submitted", "approved", "rejected"]
+
+// Błędy zwracamy jako wartość, bo Next maskuje rzucone błędy w produkcji.
+export async function setApplicationStatusAction(
+  id: string,
+  status: ApplicationStatus
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!STATUSES.includes(status)) return { ok: false, error: "Nieznany status wniosku." }
+
+  const { error } = await getSupabaseAdmin().from("applications").update({ status }).eq("id", id)
+
+  if (error) {
+    console.error("Błąd zmiany statusu wniosku:", error.message)
+    return {
+      ok: false,
+      error:
+        error.code === "42703" || error.code === "PGRST204"
+          ? "W bazie brakuje kolumny status w tabeli applications."
+          : "Nie udało się zapisać decyzji. Spróbuj ponownie.",
+    }
+  }
+
+  revalidatePath("/panel")
+  return { ok: true }
 }
