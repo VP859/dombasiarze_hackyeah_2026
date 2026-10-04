@@ -1,9 +1,10 @@
 "use client"
 
-import { FormEvent, useState } from "react"
+import { useActionState } from "react"
 import Link from "next/link"
-import { ArrowLeftIcon, CheckCircle2Icon } from "lucide-react"
+import { ArrowLeftIcon, CheckCircle2Icon, CircleAlertIcon } from "lucide-react"
 
+import { signUpForTest } from "@/app/actions/solutions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,16 +15,11 @@ type TestSignupFormProps = {
   innovationId: string
   name: string
   description: string
+  signedUp: number
 }
 
-export function TestSignupForm({ innovationId, name, description }: TestSignupFormProps) {
-  const signedUp = 12
-  const [submitted, setSubmitted] = useState(false)
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setSubmitted(true)
-  }
+export function TestSignupForm({ innovationId, name, description, signedUp }: TestSignupFormProps) {
+  const [state, formAction, isPending] = useActionState(signUpForTest, null)
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
@@ -43,7 +39,7 @@ export function TestSignupForm({ innovationId, name, description }: TestSignupFo
         </p>
       </div>
 
-      {submitted ? (
+      {state?.ok ? (
         <Alert role="status">
           <CheckCircle2Icon aria-hidden />
           <AlertTitle>Dziękujemy za zgłoszenie</AlertTitle>
@@ -54,11 +50,12 @@ export function TestSignupForm({ innovationId, name, description }: TestSignupFo
       ) : (
         <Card>
           <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+            <form action={formAction} className="flex flex-col gap-8">
+              <input type="hidden" name="solution_id" value={innovationId} />
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="name">Imię</FieldLabel>
-                  <Input id="name" name="name" type="text" autoComplete="given-name" required />
+                  <Input id="name" name="name" type="text" autoComplete="given-name" required maxLength={100} />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="email">E-mail</FieldLabel>
@@ -67,7 +64,7 @@ export function TestSignupForm({ innovationId, name, description }: TestSignupFo
                 <Field orientation="horizontal">
                   <input
                     id="contact-consent"
-                    name="contactConsent"
+                    name="consent"
                     type="checkbox"
                     required
                     className="size-5 shrink-0 accent-primary"
@@ -77,13 +74,27 @@ export function TestSignupForm({ innovationId, name, description }: TestSignupFo
                   </FieldLabel>
                 </Field>
               </FieldGroup>
-              <Button type="submit" size="lg" className="w-full sm:w-auto sm:self-start">
-                Zapisz się do testu
+              {state && !state.ok && (
+                <Alert variant="destructive" role="alert">
+                  <CircleAlertIcon aria-hidden />
+                  <AlertTitle>Nie udało się zapisać</AlertTitle>
+                  <AlertDescription>{state.error}</AlertDescription>
+                </Alert>
+              )}
+              <Button type="submit" size="lg" disabled={isPending} className="w-full sm:w-auto sm:self-start">
+                {isPending ? "Zapisuję…" : "Zapisz się do testu"}
               </Button>
             </form>
           </CardContent>
         </Card>
       )}
+
+      <p className="text-muted-foreground">
+        Już testujesz tę innowację?{" "}
+        <Link href={`/innowacja/${innovationId}#opinia`} className="font-medium text-foreground underline underline-offset-4">
+          Oceń ją i zaproponuj usprawnienia
+        </Link>
+      </p>
     </div>
   )
 }

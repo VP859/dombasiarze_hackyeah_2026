@@ -1,4 +1,6 @@
 // Tymczasowe dane demo. Później podmienimy na akcje backendu (app/actions.ts) — wszystko w tym jednym pliku.
+import type { CanvasData } from "@/lib/ai"
+
 import challengesData from "./challenges.json"
 import reviewsData from "./reviews.json"
 import solutionsData from "./solutions.json"
@@ -36,6 +38,15 @@ export type Review = {
 
 export const STAGES: Stage[] = ["pomysł", "pilotaż", "sprawdzona"]
 
+// Pola kanwy innowacji — te same w kreatorze i na stronie pomysłu.
+export const CANVAS_FIELDS: { key: keyof CanvasData; label: string }[] = [
+  { key: "problem_definition", label: "Jaki problem rozwiązuje?" },
+  { key: "target_group_needs", label: "Czego potrzebują odbiorcy?" },
+  { key: "innovative_aspect", label: "Co w nim jest nowego?" },
+  { key: "expected_outcomes", label: "Jakie będą efekty?" },
+  { key: "potential_risks", label: "Ryzyka i bariery" },
+]
+
 // Opcje formularza „Zgłoś problem” — te same wartości filtruje Panel ROPS.
 // Role jak w lib/schemas.ts (needSchema.author_role).
 export const REPORT_ROLES = [
@@ -45,6 +56,22 @@ export const REPORT_ROLES = [
 ] as const
 
 export type ReportRole = (typeof REPORT_ROLES)[number]["value"]
+
+// Formularz „Zadaj pytanie”. Wartości adresata jak w kolumnie messages.recipient.
+export const MESSAGE_RECIPIENTS = [
+  { value: "rops", label: "ROPS Kraków", hint: "Nabory, wdrożenie innowacji, współpraca z gminą." },
+  { value: "mentor", label: "Mentor", hint: "Ekspert podpowie, jak rozwinąć pomysł albo wdrożyć rozwiązanie." },
+] as const
+
+export type MessageRecipient = (typeof MESSAGE_RECIPIENTS)[number]["value"]
+
+export const MESSAGE_TOPICS = [
+  "Pytanie o innowację",
+  "Pomoc przy pomyśle",
+  "Wdrożenie w gminie",
+  "Szukam partnera",
+  "Inne",
+]
 
 export const REPORT_AUDIENCES = [
   "Seniorzy",

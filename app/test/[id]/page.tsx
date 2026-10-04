@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { getSolutionById } from "@/app/actions/solutions"
+import { getSolutionById, getTestSignupCount } from "@/app/actions/solutions"
 
 import { TestSignupForm } from "./test-signup-form"
 
@@ -16,8 +16,10 @@ export async function generateMetadata({ params }: PageProps<"/test/[id]">): Pro
 
 export default async function TestPage({ params }: PageProps<"/test/[id]">) {
   const { id } = await params
-  const solution = await getSolutionById(id)
+  const [solution, signedUp] = await Promise.all([getSolutionById(id), getTestSignupCount(id)])
   if (!solution) notFound()
 
-  return <TestSignupForm innovationId={id} name={solution.title} description={solution.method} />
+  return (
+    <TestSignupForm innovationId={id} name={solution.title} description={solution.method} signedUp={signedUp} />
+  )
 }

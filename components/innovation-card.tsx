@@ -5,7 +5,7 @@ import { StageBadge } from "@/components/stage-badge"
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Stage } from "@/seed"
 
-type CardSolution = { id: string; title: string; method: string; stage: Stage }
+type CardSolution = { id: string; title: string; method: string; stage?: Stage }
 
 // Cała karta klikalna przez jeden link w tytule (after:inset-0), więc czytnik słyszy tylko tytuł.
 // Działa z danymi z seed i z Supabase — ocenę i adres podaje strona.
@@ -31,7 +31,7 @@ export function InnovationCard({
         <CardDescription className="line-clamp-2">{solution.method}</CardDescription>
       </CardHeader>
       <CardFooter className="mt-auto flex-wrap justify-between gap-3">
-        <StageBadge stage={solution.stage} />
+        {solution.stage && <StageBadge stage={solution.stage} />}
         {rating && <RatingStars value={rating.average} count={rating.count} />}
       </CardFooter>
     </Card>

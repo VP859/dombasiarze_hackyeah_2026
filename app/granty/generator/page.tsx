@@ -1,20 +1,20 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowLeftIcon, LightbulbIcon } from "lucide-react"
+import { notFound } from "next/navigation"
+import { ArrowLeftIcon, CalendarXIcon, LightbulbIcon } from "lucide-react"
 
-import { GrantGeneratorForm, type Call } from "@/components/grant-generator"
+import { getOpenCalls } from "@/app/actions/calls-actions"
+import { getIdea } from "@/app/actions/ideas"
+import { GrantGeneratorForm } from "@/components/grant-generator"
 import { EmptyState } from "@/components/empty-state"
 import { StageBadge } from "@/components/stage-badge"
 import { buttonVariants } from "@/components/ui/button"
-import { getSupabaseAdmin } from "@/lib/supabase"
+import type { Stage } from "@/seed"
 
 export const metadata: Metadata = {
   title: "Wniosek o grant",
   description: "Przygotuj szkic wniosku o grant na podstawie swojego pomysłu.",
 }
-
-// Gdy w bazie nie ma otwartych naborów — akcja i tak dobierze pierwszy nabór albo go utworzy.
-const FALLBACK_CALLS: Call[] = [{ id: "1", title: "Małopolskie Innowacje Społeczne 2026", deadline: "2026-11-30" }]
 
 export default async function GrantGeneratorPage({ searchParams }: PageProps<"/granty/generator">) {
   const { ideaId } = await searchParams
@@ -37,35 +37,38 @@ export default async function GrantGeneratorPage({ searchParams }: PageProps<"/g
     )
   }
 
-  const supabase = getSupabaseAdmin()
-  const [{ data: idea }, { data: calls }] = await Promise.all([
-    supabase.from("ideas").select("title, essence, audience, stage").eq("id", id).maybeSingle(),
-    supabase.from("calls").select("id, title, deadline").eq("open", true).order("deadline"),
-  ])
+  const [idea, calls] = await Promise.all([getIdea(id), getOpenCalls()])
+  if (!idea) notFound()
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-8">
       <div className="flex flex-col gap-4">
-        <Link href="/kreator" className="flex w-fit items-center gap-2 underline underline-offset-4">
+        <Link href={`/kreator/${idea.id}`} className="flex w-fit items-center gap-2 underline underline-offset-4">
           <ArrowLeftIcon aria-hidden className="size-5" />
-          Wróć do kreatora
+          Wróć do pomysłu
         </Link>
         <p className="text-sm font-semibold tracking-wider text-primary uppercase">Wniosek o grant</p>
-        <h1 className="text-4xl font-bold text-balance md:text-5xl">{idea?.title ?? "Twój pomysł"}</h1>
-        {idea && (
-          <div className="flex flex-col gap-3">
-            {idea.stage && <StageBadge stage={idea.stage} />}
-            <p className="max-w-2xl text-xl text-muted-foreground">{idea.essence}</p>
-            {idea.audience && (
-              <p>
-                <span className="text-muted-foreground">Dla kogo:</span> {idea.audience}
-              </p>
-            )}
-          </div>
-        )}
+        <h1 className="text-4xl font-bold text-balance md:text-5xl">{idea.title}</h1>
+        <div className="flex flex-col gap-3">
+          {idea.stage && <StageBadge stage={idea.stage as Stage} />}
+          <p className="max-w-2xl text-xl text-muted-foreground">{idea.essence}</p>
+          {idea.audience && (
+            <p>
+              <span className="text-muted-foreground">Dla kogo:</span> {idea.audience}
+            </p>
+          )}
+        </div>
       </div>
 
-      <GrantGeneratorForm ideaId={id} availableCalls={calls?.length ? calls : FALLBACK_CALLS} />
+      {calls.length > 0 ? (
+        <GrantGeneratorForm ideaId={idea.id} availableCalls={calls} />
+      ) : (
+        <EmptyState
+          icon={CalendarXIcon}
+          title="Teraz nie trwa żaden nabór"
+          description="Generator wniosków działa w czasie naborów ROPS. Twój pomysł jest zapisany — wróć, gdy ruszy nabór."
+        />
+      )}
     </div>
   )
 }

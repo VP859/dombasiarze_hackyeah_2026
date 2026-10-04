@@ -48,10 +48,12 @@ export function GrantGeneratorForm({ ideaId, availableCalls }: { ideaId: string;
     const callId = String(new FormData(event.currentTarget).get("callId") ?? "")
     setLoading(true)
     setError(null)
+    setApplication(null)
 
     try {
       const result = await generateAndSaveGrantApplication(ideaId, callId)
-      setApplication(result.application)
+      if (result.ok) setApplication(result.application)
+      else setError(result.error)
     } catch (err) {
       console.error(err)
       setError("Nie udało się przygotować wniosku. Spróbuj ponownie za chwilę.")

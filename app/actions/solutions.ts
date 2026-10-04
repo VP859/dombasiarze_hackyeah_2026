@@ -1,6 +1,7 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { z } from 'zod';
+import { getSupabaseAdmin, supabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
 export interface Solution {
@@ -98,4 +99,46 @@ export async function addReview(formData: FormData) {
   if (error) throw new Error(`Błąd dodawania oceny: ${error.message}`);
 
   revalidatePath(`/innowacja/${solution_id}`);
+}
+
+// Tester innowacji: zapisy czyta i zapisuje tylko serwer (adresy e-mail nie trafiają do przeglądarki).
+const signupSchema = z.object({
+  solution_id: z.uuid(),
+  name: z.string().trim().min(1, 'Wpisz imię.').max(100),
+  email: z.email('Podaj poprawny adres e-mail.'),
+  consent: z.literal('on', 'Zaznacz zgodę na kontakt w sprawie testu.'),
+});
+
+// Błędy zwracamy jako wartość, bo Next maskuje rzucone błędy w produkcji.
+export type SignupState = { ok: true } | { ok: false; error: string } | null;
+
+export async function signUpForTest(_prev: SignupState, formData: FormData): Promise<SignupState> {
+  const parsed = signupSchema.safeParse({
+    solution_id: formData.get('solution_id'),
+    name: formData.get('name'),
+    email: formData.get('email'),
+    consent: formData.get('consent'),
+  });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+  const { solution_id, name, email } = parsed.data;
+  const { error } = await getSupabaseAdmin().from('test_signups').insert({ solution_id, name, email });
+  // 23505: unikalny indeks (innowacja, e-mail) — ten adres już jest zapisany.
+  if (error?.code === '23505') return { ok: false, error: 'Ten adres jest już zapisany na test tej innowacji.' };
+  if (error) {
+    console.error('Zapis na test:', error);
+    return { ok: false, error: 'Nie udało się zapisać. Spróbuj ponownie za chwilę.' };
+  }
+
+  revalidatePath(`/test/${solution_id}`);
+  return { ok: true };
+}
+
+export async function getTestSignupCount(solutionId: string) {
+  const { count, error } = await getSupabaseAdmin()
+    .from('test_signups')
+    .select('*', { count: 'exact', head: true })
+    .eq('solution_id', solutionId);
+  if (error) console.error('Liczba zapisów na test:', error.message);
+  return count ?? 0;
 }

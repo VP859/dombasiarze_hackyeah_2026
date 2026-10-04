@@ -5,6 +5,7 @@ import { PlusIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Sheet,
   SheetClose,
@@ -21,6 +22,7 @@ export function AddCallButton() {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [deadline, setDeadline] = useState("")
+  const [rules, setRules] = useState("")
   const [isPending, startTransition] = useTransition()
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,9 +31,10 @@ export function AddCallButton() {
 
     startTransition(async () => {
       try {
-        await createCallAction({ title, deadline })
+        await createCallAction({ title, deadline, rules })
         setTitle("")
         setDeadline("")
+        setRules("")
         setOpen(false)
       } catch (err: unknown) {
         alert((err as { message: string }).message || "Błąd dodawania naboru")
@@ -87,6 +90,22 @@ export function AddCallButton() {
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="call-rules" className="text-sm font-semibold">
+              Zasady naboru
+            </label>
+            <Textarea
+              id="call-rules"
+              aria-describedby="call-rules-help"
+              value={rules}
+              onChange={(e) => setRules(e.target.value)}
+              placeholder="np. granty do 50 000 zł na pilotaż, priorytet: seniorzy, wymagany partner lokalny"
+            />
+            <p id="call-rules-help" className="text-sm text-muted-foreground">
+              Kwoty, kto może składać, priorytety i wymagania. Asystent dopasuje do nich każdy wniosek.
+            </p>
           </div>
 
           <SheetFooter className="mt-auto border-t pt-4">
