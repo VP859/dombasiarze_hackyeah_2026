@@ -93,7 +93,7 @@ export function RegionMap({ className }: { className?: string }) {
 
       <rect width="400" height="380" fill="url(#region-dots)" mask="url(#region-shape)" />
 
-      {segments.map(({ from, to, step }) => (
+      {segments.map(({ from, to }, index) => (
         <path
           key={`${from}-${to}`}
           d={arc(from, to)}
@@ -102,8 +102,8 @@ export function RegionMap({ className }: { className?: string }) {
           fill="none"
           strokeWidth={2.5}
           strokeLinecap="round"
-          className="stroke-primary motion-safe:animate-draw dark:stroke-chart-2"
-          style={{ animationDelay: `${300 + step * 450}ms` }}
+          className="region-map-route stroke-primary dark:stroke-chart-2"
+          style={{ animationDelay: `${250 + index * 120}ms` }}
         />
       ))}
 
