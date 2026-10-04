@@ -460,7 +460,7 @@ export default function Map({
           )}
         </div>
 
-        <section className="flex w-full min-w-0 flex-col gap-4 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <section className="flex w-full min-w-0 flex-col gap-2 border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
           <div>
             <h3 className="text-lg font-semibold text-foreground">
               Obszar działania
@@ -496,7 +496,7 @@ export default function Map({
           />
           <form
             onSubmit={searchCity}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-1 lg:gap-2"
           >
             <Field>
               <FieldLabel
@@ -507,7 +507,7 @@ export default function Map({
               </FieldLabel>
               <Input
                 id="input-field-miasto"
-                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
+                className="h-9 rounded-lg md:text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 type="text"
                 placeholder="Np. Kraków"
                 value={cityQuery}
@@ -530,7 +530,7 @@ export default function Map({
                 Ulica
               </FieldLabel>
               <Input
-                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
+                className="h-9 rounded-lg text-sm md:text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 id="report-street"
                 name="street"
                 form="report-form"
@@ -552,7 +552,7 @@ export default function Map({
                 Numer budynku / punkt orientacyjny
               </FieldLabel>
               <Input
-                className="h-9 rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
+                className="h-9 rounded-lg md:text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
                 id="report-building"
                 name="building"
                 form="report-form"
@@ -583,7 +583,7 @@ export default function Map({
                 type="submit"
                 variant="default"
                 size="xs"
-                className=" w-full! flex h-9 min-h-9 shrink-0 rounded-lg px-3 py-1 text-xs"
+                className="ml-auto flex h-9 min-h-9 shrink-0 rounded-lg px-3 py-1 text-xs"
                 disabled={isSearchingCity}
               >
                 {isSearchingCity ? "Szukam…" : "Szukaj"}

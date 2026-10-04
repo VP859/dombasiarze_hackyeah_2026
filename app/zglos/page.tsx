@@ -81,12 +81,12 @@ export default function Zglos() {
         </Field>
 
         <FieldSet>
-          <FieldLegend className="text-xl font-bold">Czego dotyczy problem? (opcjonalnie)</FieldLegend>
+          <FieldLegend className="text-2xl font-bold">Czego dotyczy problem? (opcjonalnie)</FieldLegend>
           <FieldDescription className="text-sm text-muted-foreground mt-[-0.5rem]">
             Zaznacz wszystko, co pasuje. Nie musisz, ale to pomaga pracownikom ROPS szybciej ocenić
             zgłoszenie i dobrać rozwiązanie.
           </FieldDescription>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-[-1rem]">
             {getChallenges().map((challenge) => (
               <label key={challenge.id} className={TAG}>
                 <input
@@ -103,11 +103,11 @@ export default function Zglos() {
         </FieldSet>
 
         <FieldSet>
-          <FieldLegend>Kogo dotyczy? (opcjonalnie)</FieldLegend>
-          <FieldDescription>
+          <FieldLegend className="text-xl font-bold">Kogo dotyczy? (opcjonalnie)</FieldLegend>
+          <FieldDescription className="text-sm text-muted-foreground mt-[-0.5rem]">
             Dzięki temu pracownicy ROPS wiedzą, komu pomóc, i łatwiej znajdą innowację dla tej grupy.
           </FieldDescription>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-[-1rem]">
             {REPORT_AUDIENCES.map((audience) => (
               <label key={audience} className={TAG}>
                 <input
@@ -126,7 +126,7 @@ export default function Zglos() {
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <h2 className="text-xl font-bold">2. Gdzie występuje problem?</h2>
+          <h2 className="text-2xl font-bold">2. Gdzie występuje problem?</h2>
           <p className="text-sm text-muted-foreground">
             Kliknij na mapie miejsce, którego dotyczy zgłoszenie, i ustaw obszar.
           </p>
@@ -141,10 +141,10 @@ export default function Zglos() {
       </section>
 
       <form id={FORM_ID} onSubmit={submitReport} className="flex flex-col gap-6">
-        <h2 className="text-xl font-bold">3. O Tobie</h2>
+        <h2 className="text-2xl font-bold">3. O Tobie</h2>
 
         <FieldSet>
-          <FieldLegend>Kim jesteś?</FieldLegend>
+          <FieldLegend className="text-xl text-muted-foreground">Kim jesteś?</FieldLegend>
           <div className="grid gap-3 sm:grid-cols-3">
             {REPORT_ROLES.map((role, index) => (
               <label key={role.value} className={`${CHIP} items-start py-4`}>
@@ -166,19 +166,17 @@ export default function Zglos() {
         </FieldSet>
 
         <Field className="max-w-md">
-          <FieldLabel htmlFor="author_email">E-mail do kontaktu</FieldLabel>
+          <FieldLabel htmlFor="author_email"  className="text-md text-muted-foreground">E-mail do kontaktu</FieldLabel>
           <Input
             id="author_email"
             name="author_email"
             type="email"
             required
             autoComplete="email"
-            placeholder="np. jan@example.com"
+            className=" rounded-lg text-sm text-foreground placeholder:text-sm placeholder:text-muted-foreground"
+            placeholder="np. jan@gmail.com"
           />
-          <FieldDescription>Wyślemy na niego dopasowane rozwiązania. Nie pokazujemy go publicznie.</FieldDescription>
-        </Field>
-
-        <Field orientation="horizontal">
+                  <Field orientation="horizontal">
           <input
             id="contact-consent"
             name="consent"
@@ -186,9 +184,10 @@ export default function Zglos() {
             required
             className="size-5 shrink-0 accent-primary"
           />
-          <FieldLabel htmlFor="contact-consent" className="font-normal">
+          <FieldLabel htmlFor="contact-consent" className="font-normal text-sm text-muted-foreground">
             Wyślijcie mi dopasowane rozwiązania i odpowiedź ROPS na ten adres.
           </FieldLabel>
+        </Field>
         </Field>
 
         <div className="flex flex-col gap-4 border-t pt-6">
