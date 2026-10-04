@@ -82,11 +82,12 @@ function StatusSelector({ need }: { need: Need }) {
         disabled={isPending}
       >
         <SelectTrigger
+          aria-label={`Status zgłoszenia: ${need.gmina}`}
           className={`h-8 text-xs ${
             currentStatus === "Nowe"
               ? "border-green-300 bg-green-400 text-black font-bold"
               : currentStatus === "Zamknięte"
-                ? "border-red-300 bg-red-400 text-red-900 font-bold"
+                ? "border-red-300 bg-red-100 text-red-900 font-bold"
                 : ""
           }`}
         >
