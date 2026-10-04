@@ -25,7 +25,7 @@ export function AddCallButton() {
 
   return (
     <Button type="button" onClick={handleAddCall} disabled={isPending}>
-      {isPending ? <Loader2 className="size-4 animate-spin" /> : <PlusIcon data-icon="inline-start" aria-hidden />}
+      {isPending ? <Loader2 aria-hidden className="size-4 motion-safe:animate-spin" /> : <PlusIcon data-icon="inline-start" aria-hidden />}
       Dodaj nabór
     </Button>
   )

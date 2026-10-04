@@ -1,9 +1,11 @@
+import { cookies } from "next/headers"
 import Link from "next/link"
 
 import { InnovationCard } from "@/components/innovation-card"
 import { RegionMap } from "@/components/region-map"
 import { buttonVariants } from "@/components/ui/button"
 import { getReviewsForSolution, getSolutions } from "@/app/actions/solutions"
+import { ROLE_COOKIE, ROLE_VIEW, toRole } from "@/lib/role"
 import { getChallenges } from "@/seed"
 
 const STEPS = [
@@ -12,10 +14,17 @@ const STEPS = [
   { title: "Wdróż w gminie", text: "Dostosuj wybrane rozwiązanie do swojej gminy i zacznij działać." },
 ]
 
-// Dane z Supabase, strona odświeżana co minutę.
-export const revalidate = 60
+const ACTIONS = [
+  { href: "/zglos", label: "Zgłoś problem" },
+  { href: "/biblioteka", label: "Przeglądaj innowacje" },
+  { href: "/kreator", label: "Mam pomysł" },
+]
 
 export default async function Page() {
+  // Strona zależy od roli z ciasteczka, więc renderuje się przy każdym wejściu.
+  const role = toRole((await cookies()).get(ROLE_COOKIE)?.value)
+  const { lead, main: primary } = ROLE_VIEW[role]
+  const secondary = ACTIONS.filter((a) => a.href !== primary.href).slice(0, 2)
   const solutions = (await getSolutions().catch(() => null)) ?? []
   const proven = solutions.filter((s) => s.stage === "sprawdzona")
   // Najpierw sprawdzone, resztą dopełniamy do trzech.
@@ -47,19 +56,20 @@ export default async function Page() {
           <h1 className="text-4xl leading-[1.05] font-bold tracking-tight text-balance md:text-6xl">
             Nie wymyślaj koła na nowo — podaj dalej
           </h1>
-          <p className="max-w-xl text-xl text-muted-foreground">
-            Znajdź sprawdzone innowacje społeczne z Małopolski i wdróż je w swojej gminie.
-          </p>
+          <p className="max-w-xl text-xl text-muted-foreground">{lead}</p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/zglos" className={buttonVariants({ size: "lg" })}>
-              Zgłoś problem
+            <Link href={primary.href} className={buttonVariants({ size: "lg" })}>
+              {primary.label}
             </Link>
-            <Link href="/biblioteka" className={buttonVariants({ size: "lg", variant: "secondary" })}>
-              Przeglądaj innowacje
-            </Link>
-            <Link href="/kreator" className={buttonVariants({ size: "lg", variant: "secondary" })}>
-              Mam pomysł
-            </Link>
+            {secondary.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className={buttonVariants({ size: "lg", variant: "secondary" })}
+              >
+                {action.label}
+              </Link>
+            ))}
           </div>
         </div>
         <figure className="flex flex-col gap-3">
