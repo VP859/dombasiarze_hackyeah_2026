@@ -6,14 +6,12 @@ import { StageBadge } from "@/components/stage-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { STAGES } from "@/seed"
-import { publishInnovationAction } from "@/app/actions/rops-panel-actions"
-import { Loader2 } from "lucide-react"
+import { approveSolutionAction } from "@/app/actions/rops-panel-actions"
 
 import { formatDate } from "./format"
 import { PreviewSheet, type DraftInnovation } from "./preview-sheet"
 
 export type Call = {
-  id?: string
   title: string
   /** ISO, np. 2026-11-30 */
   deadline: string
@@ -21,16 +19,16 @@ export type Call = {
   open: boolean
 }
 
-function PublishButton({ id, title }: { id?: string; title: string }) {
+function PublishButton({ item }: { item: DraftInnovation }) {
   const [isPending, startTransition] = useTransition()
 
-  const handlePublish = () => {
-    if (!id) return
+  const handleApprove = () => {
+    if (!item.id) return
     startTransition(async () => {
       try {
-        await publishInnovationAction(id)
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Błąd publikacji")
+        await approveSolutionAction(item.id!)
+      } catch (err: unknown) {
+        alert((err as Error).message || "Błąd zatwierdzania innowacji")
       }
     })
   }
@@ -39,14 +37,15 @@ function PublishButton({ id, title }: { id?: string; title: string }) {
     <Button
       type="button"
       size="sm"
-      disabled={isPending || !id}
-      onClick={handlePublish}
+      disabled={isPending}
+      onClick={handleApprove}
     >
-      {isPending ? <Loader2 className="size-4 animate-spin" /> : "Opublikuj"}
-      <span className="sr-only">: {title}</span>
+      {isPending ? "Zatwierdzanie..." : "Opublikuj"}
+      <span className="sr-only">: {item.title}</span>
     </Button>
   )
 }
+
 const verifyColumns: Column<DraftInnovation>[] = [
   {
     id: "title",
@@ -87,7 +86,7 @@ const verifyColumns: Column<DraftInnovation>[] = [
     cell: (item) => (
       <div className="flex justify-end gap-2">
         <PreviewSheet item={item} />
-        <PublishButton id={item.id} title={item.title} />
+        <PublishButton item={item} />
       </div>
     ),
   },
@@ -150,10 +149,9 @@ export function CallsTable({ calls }: { calls: Call[] }) {
     <DataTable
       rows={calls}
       columns={callColumns}
-      getRowId={(call) => call.id || call.title}
+      getRowId={(call) => call.title}
       caption="Nabory"
       initialSort={{ id: "deadline", dir: "desc" }}
     />
   )
 }
-
