@@ -1,4 +1,4 @@
-# Podaj Dalej — nie wymyślaj koła na nowo 
+# Podaj Dalej — nie wymyślaj koła na nowo
 
 Platforma Małopolskiego Hubu Innowacji Społecznych (ROPS Kraków), przygotowana na HackYeah 2026.
 
