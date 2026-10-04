@@ -327,7 +327,7 @@ ${extraContext ? `- Kontekst dodatkowy: ${extraContext}` : ""}`
   })
 
   if (!response.text) {
-    throw new Error("Brak odpowiedzi z modeli Gemini API.")
+    throw new Error("Brak odpowiedzi z modelu Gemini API.")
   }
 
   return JSON.parse(response.text) as SolutionDraft
